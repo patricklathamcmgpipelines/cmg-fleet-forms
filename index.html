@@ -121,10 +121,16 @@
   <div class="sub" id="assetSub"></div>
 </header>
 
-<div id="folderLinkBar" style="display:none; text-align:center; padding:10px 16px; background:#fff; border-bottom:1px solid var(--line);">
+<div id="folderLinkBar" style="display:none; text-align:center; padding:10px 16px 0; background:#fff; border-bottom:1px solid var(--line);">
   <a id="folderLinkBtn" href="#" target="_blank" rel="noopener"
-     style="display:inline-block; padding:10px 18px; font-size:14px; font-weight:700; border-radius:8px; background:var(--steel); color:#fff; text-decoration:none;">
+     style="display:inline-block; margin-bottom:10px; padding:10px 18px; font-size:14px; font-weight:700; border-radius:8px; background:var(--steel); color:#fff; text-decoration:none;">
     📁 View Asset Folder
+  </a>
+</div>
+<div style="text-align:center; padding:0 16px 10px; background:#fff; border-bottom:1px solid var(--line);">
+  <a id="fleetSvcBtn" href="#" target="_blank" rel="noopener"
+     style="display:inline-block; padding:10px 18px; font-size:14px; font-weight:700; border-radius:8px; background:var(--rust); color:#fff; text-decoration:none;">
+    📋 Fleet/Service Inspection
   </a>
 </div>
 
@@ -233,6 +239,18 @@ fetch('./folder-links.json')
     }
   })
   .catch(() => { /* fail silently — form still works without the button */ });
+
+// ===== Fleet/Service inspection button (Track B applies to every vehicle) =====
+{
+  const qs = new URLSearchParams({
+    assetId: asset.assetId,
+    folderName: asset.folderName,
+    make: asset.make,
+    model: asset.model,
+    vin: asset.vin
+  });
+  document.getElementById('fleetSvcBtn').href = './fleet-service.html?' + qs.toString();
+}
 
 // ===== Build rating checklist =====
 const ratingList = document.getElementById("ratingList");
