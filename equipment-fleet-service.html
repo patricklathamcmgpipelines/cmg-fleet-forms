@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Equipment Fleet Service &amp; Interstate Transfer Inspection — CMG Pipelines</title>
+<style>
+  :root {
+    --steel: #1F3B57; --steel-dark: #142838;
+    --rust: #C2571A; --rust-dark: #9C4410;
+    --ok: #2C6B2F; --ok-bg: #E4F1E4;
+    --attn: #96590A; --attn-bg: #FBEBD6;
+    --fail: #8C2A20; --fail-bg: #F6DCDA;
+    --na: #555; --na-bg: #E6E6E6;
+    --paper: #F7F5F1; --ink: #1A1A1A; --line: #D8D3C8;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; background:var(--paper); color:var(--ink); padding-bottom:64px; }
+  header { background:var(--steel); color:#fff; padding:16px; text-align:center; position:sticky; top:0; z-index:10; box-shadow:0 2px 8px rgba(0,0,0,.15); }
+  header h1 { margin:0; font-size:15px; letter-spacing:.03em; text-transform:uppercase; }
+  header .asset { margin-top:4px; font-size:15px; color:#FFD9B8; font-weight:700; }
+  header .prog { margin-top:6px; font-size:12px; color:#B9C6D3; }
+  header .progbar { height:6px; background:rgba(255,255,255,.2); border-radius:3px; margin-top:4px; overflow:hidden; }
+  header .progbar-fill { height:100%; background:var(--rust); width:0%; transition:width .2s; }
+
+  main { max-width:720px; margin:0 auto; padding:12px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin-bottom:12px; }
+  .card h2 { font-size:12px; text-transform:uppercase; letter-spacing:.07em; color:var(--rust-dark); margin:0 0 10px; border-bottom:2px solid var(--rust); padding-bottom:6px; }
+  label { display:block; font-size:12px; font-weight:600; margin:8px 0 3px; }
+  label:first-child { margin-top:0; }
+  input[type=text], input[type=date], input[type=number], textarea, select {
+    width:100%; padding:9px 10px; font-size:15px; border:1px solid var(--line); border-radius:7px; background:#fdfdfc; font-family:inherit;
+  }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:0 12px; }
+
+  .section { background:#fff; border:1px solid var(--line); border-radius:10px; margin-bottom:10px; overflow:hidden; }
+  .section-head { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; cursor:pointer; background:#fff; }
+  .section-head:active { background:#f5f3ee; }
+  .section-title { font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--steel-dark); }
+  .section-badge { font-size:11px; font-weight:700; padding:3px 8px; border-radius:10px; background:var(--na-bg); color:var(--na); }
+  .section-badge.complete { background:var(--ok-bg); color:var(--ok); }
+  .section-chevron { font-size:12px; color:#999; margin-left:8px; transition:transform .15s; }
+  .section.open .section-chevron { transform:rotate(90deg); }
+  .section-body { display:none; padding:0 14px 12px; }
+  .section.open .section-body { display:block; }
+
+  .item { border-top:1px solid var(--line); padding:10px 0; }
+  .item:first-child { border-top:none; }
+  .item-q { font-size:13.5px; font-weight:600; margin-bottom:7px; }
+  .btnrow { display:grid; grid-template-columns:repeat(4,1fr); gap:5px; margin-bottom:6px; }
+  .btnrow button { padding:8px 2px; font-size:11.5px; font-weight:700; border-radius:6px; border:2px solid var(--line); background:#fff; color:#555; cursor:pointer; }
+  .btnrow button[data-v="Pass"].active, .btnrow button[data-v="No"].active { background:var(--ok-bg); border-color:var(--ok); color:var(--ok); }
+  .btnrow button[data-v="Attn"].active { background:var(--attn-bg); border-color:var(--attn); color:var(--attn); }
+  .btnrow button[data-v="Fail"].active, .btnrow button[data-v="Yes"].active { background:var(--fail-bg); border-color:var(--fail); color:var(--fail); }
+  .btnrow button[data-v="N/A"].active { background:var(--na-bg); border-color:var(--na); color:var(--na); }
+  .item-fields { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:6px; }
+  .item-fields input { font-size:13px; padding:7px 8px; }
+  .item-fields .full { grid-column:1 / -1; }
+  .repair-row { display:flex; align-items:center; gap:8px; margin-top:6px; }
+  .repair-row .lbl { font-size:11.5px; font-weight:700; color:#777; text-transform:uppercase; letter-spacing:.03em; }
+  .repair-row .btnrow { grid-template-columns:repeat(3,1fr); margin-bottom:0; flex:1; }
+
+  .photo-btn { display:block; width:100%; padding:12px; font-size:14px; font-weight:700; border-radius:8px; border:2px dashed var(--rust); background:#FFF4EC; color:var(--rust-dark); cursor:pointer; margin-bottom:10px; }
+  #photoInput { display:none; }
+  .thumbs { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .thumb { position:relative; aspect-ratio:1; border-radius:6px; overflow:hidden; border:1px solid var(--line); }
+  .thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+  .thumb button { position:absolute; top:2px; right:2px; width:20px; height:20px; line-height:18px; border-radius:50%; border:none; background:rgba(0,0,0,.65); color:#fff; font-size:13px; cursor:pointer; }
+
+  .submit-bar { position:sticky; bottom:0; background:var(--paper); padding:10px 12px 16px; }
+  #submitBtn { width:100%; padding:15px; font-size:15px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; border:none; border-radius:10px; background:var(--rust); color:#fff; cursor:pointer; }
+  #submitBtn:disabled { background:#C7BFAE; cursor:not-allowed; }
+  #formMsg { text-align:center; font-size:13px; margin-top:8px; min-height:18px; font-weight:600; }
+  #formMsg.err { color:var(--fail); } #formMsg.ok { color:var(--ok); }
+
+  .resume-banner { background:var(--attn-bg); color:var(--attn); border:1px solid var(--attn); border-radius:8px; padding:10px 12px; margin-bottom:12px; font-size:13px; }
+  .resume-banner button { margin-top:8px; margin-right:8px; padding:7px 12px; border-radius:6px; border:1px solid var(--attn); background:#fff; color:var(--attn); font-weight:700; font-size:12px; cursor:pointer; }
+
+  .overlay { position:fixed; inset:0; background:rgba(20,40,56,.92); color:#fff; display:none; align-items:center; justify-content:center; flex-direction:column; text-align:center; padding:24px; z-index:20; }
+  .overlay.show { display:flex; }
+  .spinner { width:40px; height:40px; border:4px solid rgba(255,255,255,.25); border-top-color:var(--rust); border-radius:50%; animation:spin .9s linear infinite; margin-bottom:14px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .overlay.success .spinner { display:none; }
+  .checkmark { font-size:46px; color:#7CD98F; margin-bottom:10px; display:none; }
+  .overlay.success .checkmark { display:block; }
+
+  .expandall { display:flex; gap:8px; margin-bottom:10px; }
+  .expandall button { flex:1; padding:8px; font-size:12px; font-weight:700; border-radius:7px; border:1px solid var(--line); background:#fff; color:var(--steel-dark); cursor:pointer; }
+
+  .catmissing { background:#fff; border:1px solid var(--fail); border-radius:10px; padding:16px; margin-bottom:12px; color:var(--fail); font-size:14px; font-weight:600; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Equipment Fleet Service &amp; Interstate Transfer Inspection</h1>
+  <div class="asset" id="assetHeading">Loading asset…</div>
+  <div class="prog" id="progText">0 of 0 items completed</div>
+  <div class="progbar"><div class="progbar-fill" id="progFill"></div></div>
+</header>
+
+<main>
+  <div id="resumeBanner"></div>
+  <div id="catMissing"></div>
+
+  <form id="inspectionForm">
+    <div class="card">
+      <h2>Header</h2>
+      <div class="grid2">
+        <div><label>Origin / From</label><input type="text" id="h_origin"></div>
+        <div><label>Destination / To</label><input type="text" id="h_destination"></div>
+        <div><label>Project / Yard</label><input type="text" id="h_projectYard"></div>
+        <div><label>Receiving Project / Yard</label><input type="text" id="h_receivingProjectYard"></div>
+        <div><label>Inspection Date</label><input type="date" id="h_date" required></div>
+        <div><label>Work Order #</label><input type="text" id="h_workOrder"></div>
+        <div><label>Hours / Mileage / Usage</label><input type="text" id="h_mileage" inputmode="numeric"></div>
+        <div><label>Inspector / Mechanic</label><input type="text" id="h_inspector" required></div>
+        <div><label>Transporter / Driver</label><input type="text" id="h_driver"></div>
+        <div><label>Attachment / Config</label><input type="text" id="h_attachmentConfig"></div>
+        <div><label>Titan GPS Unit #</label><input type="text" id="h_titanUnit"></div>
+      </div>
+    </div>
+
+    <div class="expandall">
+      <button type="button" id="expandAllBtn">Expand All Sections</button>
+      <button type="button" id="collapseAllBtn">Collapse All Sections</button>
+    </div>
+
+    <div id="sectionsContainer"></div>
+
+    <div class="card">
+      <h2>Photos <span style="font-weight:400;color:#777;">(optional — attach for any damage or defects noted above)</span></h2>      <div id="photoCount" style="font-size:13px;font-weight:700;margin-bottom:10px;">0 photos added</div>
+      <button type="button" class="photo-btn" id="addPhotoBtn">📷 Add Photo</button>
+      <input type="file" id="photoInput" accept="image/*" capture="environment" multiple>
+      <div class="thumbs" id="thumbs"></div>
+    </div>
+
+    <div class="card">
+      <h2>Transfer Release / Receiving Acceptance</h2>
+      <div class="grid2">
+        <div><label>Released By</label><input type="text" id="f_releasedBy"></div>
+        <div><label>Release Date</label><input type="date" id="f_releaseDate"></div>
+        <div><label>Ready to Ship?</label><input type="text" id="f_readyToShip" placeholder="Yes / No"></div>
+        <div><label>Received By</label><input type="text" id="f_receivedBy"></div>
+        <div><label>Received Date</label><input type="date" id="f_receivedDate"></div>
+        <div><label>Shipping Damage?</label><input type="text" id="f_shippingDamage" placeholder="Yes / No"></div>
+        <div><label>Open Repair / WO #</label><input type="text" id="f_openRepairWO"></div>
+        <div><label>Missing Items</label><input type="text" id="f_missingItems"></div>
+        <div><label>Ready for Service?</label><input type="text" id="f_readyForService" placeholder="Yes / No"></div>
+      </div>
+    </div>
+
+    <div class="submit-bar">
+      <button type="submit" id="submitBtn">Submit Inspection</button>
+      <div id="formMsg"></div>
+    </div>
+  </form>
+</main>
+
+<div class="overlay" id="overlay">
+  <div class="spinner"></div>
+  <div class="checkmark">✓</div>
+  <div id="overlayText" style="font-size:15px;font-weight:600;">Uploading inspection…</div>
+</div>
+
+<script>
+// ===== CONFIGURATION =====
+const POWER_AUTOMATE_URL = "https://default58be2c3c790d488697834bdc51b5d3.aa.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/13/workflows/433933cdcdb4442f80b15efc1098fefe/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=SXCc1_YpU1bZIMa0X2FJHQVaGbHxi14Uwg6GBnprWfk";
+const FORM_TYPE = "EQFLEETSVC";
+const MAX_PHOTOS = 20;
+const MAX_PHOTO_DIMENSION = 1600;
+const JPEG_QUALITY = 0.72;
+
+// ===== Category checklist library =====
+// Each category: [displayName, [ [sectionTitle, [item, item, ...]], ... ] ]
+const CATEGORIES = {};
+
+CATEGORIES["excavator"] = ["Excavator", [
+["ENGINE / FLUIDS", ["Engine oil","Coolant","Hydraulic oil","Fuel system","Air filter","Belts/hoses","Leaks"]],
+["UNDERCARRIAGE", ["Tracks condition/tension","Sprockets","Idlers","Track rollers","Final drives / leaks","Track frame"]],
+["BOOM / STICK / BUCKET", ["Boom condition","Stick condition","Bucket condition","Pins/bushings","Quick coupler / locking system","Cylinders / rods","Hydraulic hoses"]],
+["SWING / TRAVEL", ["Swing function / bearing","Travel motors","Left/right travel","Travel speed","Blade / outriggers if equipped"]],
+["OPERATOR / SAFETY", ["Seat belt","ROPS/FOPS/cab","Control lockout","Travel alarm","Horn","Lights","Mirrors/camera","Emergency stop if equipped"]],
+["CONTROLS / HYDRAULICS", ["Joystick controls self-center","Auxiliary hydraulics","Hydraulic functions smooth","Abnormal noise/vibration","Fault codes"]],
+["TITAN / HOURS", ["Hour meter recorded","Titan installed","Titan serial recorded","Titan reporting hours","Last Titan update"]],
+["TRANSFER", ["Attachments inventoried","Existing damage photographed","Open repair/WO documented","Ready to Ship","Shipping damage on receipt","Ready for Service"]]
+]];
+
+CATEGORIES["camper"] = ["Camper", [
+["CHASSIS / EXTERIOR", ["Frame/chassis condition","Exterior body/siding","Roof condition/seals","Windows/screens","Entry door/locks","Steps/handrails","Awning condition","Exterior compartments/latches","Underbody condition","Leveling/stabilizer jacks"]],
+["TIRES / TOWING", ["Tires condition/tread/PSI","Spare tire","Wheels/lug nuts","Wheel bearings/hubs","Axles/suspension","Trailer brakes if applicable","Breakaway system if applicable","Coupler/pintle/kingpin","Safety chains","Jack/landing gear","Lights/reflectors"]],
+["ELECTRICAL", ["Shore power cord/plug","Main breaker panel","Interior outlets","GFCI function","Interior lighting","Exterior lighting","Battery/battery disconnect","Converter/charger","Generator if equipped","Solar system if equipped"]],
+["PLUMBING / WATER", ["Fresh water tank","Water pump","Water heater","Faucets/sinks","Toilet","Shower","Gray tank","Black tank","Drain valves","Water/sewer hoses","Leaks"]],
+["PROPANE / APPLIANCES", ["Propane cylinders secure","Regulator/hoses","Propane leak check","LP detector","CO detector","Smoke detector","Fire extinguisher","Refrigerator","Range/cooktop","Microwave","Furnace","A/C operation"]],
+["INTERIOR / SAFETY", ["Flooring","Walls/ceiling","Cabinets/latches","Beds/furniture","Emergency exits","Locks/keys","Pest/water intrusion","Overall cleanliness"]],
+["TRANSFER", ["Inventory contents","Photograph existing damage","Utilities disconnected/secured","Loose items secured","Open repair/WO","Ready to Ship","Receiving damage","Missing items","Ready for Service"]]
+]];
+
+CATEGORIES["trailer"] = ["Trailer", [
+["TRAILER IDENTIFICATION / DOCUMENTS", ["VIN matches records","Asset ID marking present","Registration present/current","License plate secure/legible","GVWR / data plate legible"]],
+["COUPLING / TOWING", ["Coupler / pintle / kingpin condition","Latch locks securely","Safety chains / cables condition","Breakaway cable attached/condition","Tongue / A-frame condition","Jack / landing gear operation","Trailer plug / connector condition"]],
+["TIRES / WHEELS", ["LF tire condition / tread / PSI","RF tire condition / tread / PSI","LR tire condition / tread / PSI","RR tire condition / tread / PSI","Spare tire present/condition","Wheels/rims condition","Lug nuts present/secure","Wheel bearings / hubs"]],
+["BRAKES / AXLES", ["Service brakes function","Electric / hydraulic brake system","Breakaway brake function","Brake lines / wiring","Axles / springs / equalizers","Hangers / shackles / U-bolts"]],
+["LIGHTS / ELECTRICAL", ["Tail/marker lights","Brake lights","Turn signals","Hazard lights","License plate light","Reflectors conspicuity tape","Battery / breakaway battery"]],
+["FRAME / DECK / CARGO", ["Frame / welds / crossmembers","Deck / floor condition","Fenders","Ramps / gates","Tie-down points / D-rings","Toolboxes / doors / latches","Load securement equipment"]],
+["INTERSTATE TRANSFER", ["Existing damage photographed","Cargo/accessories inventoried","Keys/locks accounted for","Open repair/WO documented","Ready to Ship","Shipping damage on receipt","Missing items on receipt","Ready for Service"]]
+]];
+
+CATEGORIES["directional-drill"] = ["Directional Drill", [
+["ENGINE", ["Engine oil level / condition","Engine oil leaks","Oil filter condition","Air filter / restriction indicator","Intake piping / clamps","Fuel level","Fuel filter / water separator","Fuel system leaks","Coolant level","Radiator / cooling package","Cooling fan","Belts / tensioners","Exhaust system","DEF level / system, if equipped","Engine mounts","Battery condition","Battery cables / terminals","Charging system","Starter operation","Engine starts normally","Engine idle / full RPM operation","Check engine / warning lights","Abnormal engine noise or smoke"]],
+["HYDRAULIC SYSTEM", ["Hydraulic oil level","Hydraulic oil condition","Hydraulic filters / indicators","Hydraulic tank / cap / breather","Main hydraulic pumps","Hydraulic motors","Hoses inspected for damage","Fittings / connections","Cylinders","Cylinder rods","Control valves","Hydraulic cooler","No visible hydraulic leaks","System operates without abnormal noise","Hydraulic functions operate smoothly","Hydraulic pressure checked if required"]],
+["DRILL ROTATION SYSTEM", ["Drill head / spindle condition","Spindle bearings","Chuck / vise assembly","Chuck jaws","Front vise","Rear vise","Rotation gearbox","Rotation motor(s)","Rotation hoses / fittings","Rotation forward / reverse","Abnormal spindle play","Abnormal noise during rotation","Grease points serviced","Tool joint / saver sub condition","Clamp jaw teeth sharp"]],
+["THRUST / PULLBACK SYSTEM", ["Carriage condition","Carriage rollers / wear pads","Carriage alignment","Thrust drive system","Thrust motors","Chains / rack-and-pinion system","Chain tension, if equipped","Sprockets / gears","Thrust hoses","Pullback operation","Forward thrust operation","Carriage travel full stroke","No binding / abnormal movement"]],
+["DRILL ROD / ROD LOADER", ["Drill rods visually inspected","Rod threads","Rod shoulders","Bent / damaged rods identified","Rod rack","Rod loader arms","Rod loader cylinders","Rod loader sensors / switches","Rod loader alignment","Rod transfer operation","Rod guides","Rod lubrication system","Automatic rod loader cycle tested"]],
+["DRILLING FLUID / MUD SYSTEM", ["Mud pump","Pump oil / lubrication","Pump drive","Suction hose","Discharge hose","Mud swivel","Swivel seals","Mud plumbing","Valves","Pressure gauge","Flow control","No fluid leaks","Pump builds pressure","Pump maintains pressure","Water pump packing checked for leakage"]],["TRACKS / UNDERCARRIAGE", ["Left track condition","Right track condition","Track tension","Track rollers","Idlers","Drive sprockets","Final drives","Travel motors","Track frame","Left travel function","Right travel function","Forward / reverse","Steering operation","No abnormal final-drive noise","No final-drive oil leaks"]],
+["ANCHOR / STAKE SYSTEM", ["Left anchor","Right anchor","Anchor motors","Anchor cylinders","Anchor teeth / augers","Anchor hoses","Anchor controls","Anchor operation","Frame / mounting points"]],
+["FRAME & STRUCTURE", ["Main frame","Drill rack / drill frame","Welds inspected for cracks","Pivot points","Pins","Bushings","Guards","Covers","Steps / handholds","Fasteners / mounting bolts","Grease points","Excessive structural wear or damage","Rust inhibitor applied to exposed cylinder rods"]],
+["ELECTRICAL / CONTROLS", ["Ignition switch","Instrument panel","Hour meter","Gauges","Warning lights","Work lights","Horn","Wiring harness","Electrical connectors","Fuses / relays","Control joysticks","Operator switches","Emergency stop","Neutral safety system","Remote control, if equipped","Machine fault codes checked","Software version verified"]],
+["SAFETY EQUIPMENT", ["Emergency stop tested","Operator presence system","Guards installed","Safety decals readable","Fire extinguisher present / charged","Strike alert system","Electrical strike system tested","Grounding equipment","Machine alarms","Backup / travel alarm, if equipped","Seat / operator station","PPE storage / safety equipment","Propel lever self-centers when released and track stops","Rotation lever self-centers when released and rotation stops","Thrust lever self-centers when released and thrust stops","Operator presence: disables propel when operator is in seat","Operator presence: disables rotation and thrust when operator is out of seat","Counter-balance valve - rack angle supports load","Strike alert: check voltage / current","Strike alert: reset horn - horn silent","Strike alert: voltage sense stake electrical connection","Strike alert: current coil electrical connection","Remote lockout system - proper function verified"]],
+["FUNCTION TEST", ["Rack angle up / down function","Track extension function"]],
+["CALIBRATION", ["Low idle calibrated","High idle calibrated","Rotation pressure calibrated","Forward torque limit switch calibrated","Reverse torque limit switch calibrated","Implement standby charge pressure calibrated","Implement relief pressure calibrated","Thrust charge pressure calibrated","Rotation charge pressure calibrated"]],
+["DOCUMENTATION", ["Supplemental manual(s) present","Operator's manual present","Maintenance manual present","Parts manual present","Navigator HDD boring tools parts manual present, if applicable","Notice to owners decal present","Operator's manual handbook tethered to literature box"]],
+["COMPONENT DATA", ["Engine model/serial recorded","Track drive motor - right model/serial recorded","Track drive motor - left model/serial recorded","Stakedown motor - right model/serial recorded","Stakedown motor - left model/serial recorded","Rotation gearbox drive motor model/serial recorded","Water pump motor model/serial recorded","Gear pump model/serial recorded","Water pump model/serial recorded","Strike alert unit model/serial recorded","Remote lockout unit model/serial recorded"]],
+["TELEMATICS / TITAN GPS", ["Titan GPS / telematics installed","Titan GPS control unit serial number recorded","Fleet portal reporting hours verified"]],
+["INTERSTATE TRANSFER / RELEASE", ["Before load: machine cleaned enough to identify leaks / damage","Before load: pre-shipment photos taken - all 4 sides, operator station, hour meter, serial plate","Before load: loose tooling, rods, subs, guards and accessories inventoried / secured","Before load: fluid leaks corrected or documented before transport","Before load: battery / master disconnect secured for transport as applicable","Load: tracks / undercarriage and tie-down points checked for transport condition","Load: machine dimensions / weight and transport configuration verified","Receiving: arrival photos taken before unloading / operation","Receiving: shipping damage / missing items compared with pre-shipment condition"]]
+]];
+
+CATEGORIES["bursting-rig"] = ["Bursting Rig Powerpack", [
+["POWERPACK", ["Engine oil/coolant/fuel","Hydraulic oil","Filters","Battery","Leaks","Hour meter"]],
+["HYDRAULICS", ["Pump operation","Operating pressure","Relief pressure","Hoses/fittings","Quick couplers","Cylinders","Hydraulic leaks"]],
+["RIG / FRAME", ["Frame/welds","Anchoring points","Pulling cylinder/ram","Guides/rollers","Pins/retainers","Guards/shields"]],
+["CONTROLS / SAFETY", ["Emergency stop","Control levers self-center","Remote controls","Pressure gauges","Warning labels","Hose burst protection"]],
+["RODS / TOOLING", ["Bursting rods","Rod connections/threads","Bursting heads","Expanders","Swivels","Pulling adapters","Tooling inventoried"]],
+["TITAN / HOURS", ["Hour meter","Titan installed if applicable","Titan serial/reporting"]],
+["TRANSFER", ["All tooling inventoried","Existing damage photographed","Open WO","Ready to Ship","Shipping damage","Ready for Service"]]
+]];
+
+CATEGORIES["fusion-machine"] = ["Fusion Machine", [
+["IDENTIFICATION", ["Asset ID","Machine model/serial","Fusion size/range","Hour meter if equipped"]],
+["CARRIAGE / JAWS", ["Carriage condition","Fixed/movable jaws","Jaw inserts correct/complete","Clamp function","Carriage travel smooth","Pins/fasteners"]],
+["FACER", ["Facer blades condition","Facer operation","Facer locks/guards","Facer power cord/hoses"]],
+["HEATER", ["Heater plate surface","Heater temperature control","Temperature verified/calibrated","Heater stand","Power cord / plug"]],
+["HYDRAULICS", ["Hydraulic oil level","Pump operation","Hoses/fittings","Pressure gauge","Fusion pressure verified/calibrated","Leaks"]],
+["POWER / GENERATOR", ["Generator/power source condition","Voltage/output verified","GFCI/breakers","Grounding","Cords/connectors"]],
+["ACCESSORIES", ["Pipe supports/rollers","Data logger if equipped","Tooling/inserts inventoried","Manuals/calibration records"]],
+["TRANSFER", ["All components inventoried","Cases/stands secured","Existing damage photographed","Open WO","Ready to Ship","Missing items on receipt","Ready for Service"]]
+]];
+
+CATEGORIES["forklift"] = ["Forklift", [
+["ENGINE / POWER", ["Engine oil/coolant/fuel or battery charge","Hydraulic oil","Transmission fluid if applicable","Battery/cables","LPG cylinder/mount if applicable","Leaks","Hour meter"]],
+["MAST / LIFT", ["Mast rails","Lift chains","Chain anchors","Rollers/bearings","Lift cylinders","Tilt cylinders","Hydraulic hoses","Carriage","Load backrest","Mast raises/lowers smoothly","Tilt function"]],
+["FORKS / ATTACHMENTS", ["Fork blades condition","Fork heels wear/cracks","Fork locking pins","Fork spacing/retainers","Attachment condition","Attachment locking system","Capacity plate matches attachment"]],
+["TIRES / STEERING", ["Steer tires","Drive tires","Wheels/lug nuts","Steering operation","Steering linkage/axle"]],
+["BRAKES / DRIVE", ["Service brake","Parking brake","Forward/reverse","Transmission/drive operation","Inching control if equipped"]],
+["OPERATOR SAFETY", ["Seat/seat belt","Operator presence system","Overhead guard","Horn","Backup alarm","Lights/beacon","Mirrors/camera","Emergency disconnect/stop","Controls labeled","Safety decals/capacity plate"]],
+["FUNCTION / DIAGNOSTICS", ["Gauges/warning lights","Hydraulic functions","No abnormal noise","Fault codes","Road/yard function test"]],
+["TITAN / TRANSFER", ["Titan installed/reporting if applicable","Existing damage photographed","Forks/attachments inventoried","Open WO","Ready to Ship","Shipping damage","Ready for Service"]]
+]];
+
+CATEGORIES["generator-pump"] = ["Generator / Pump", [
+["ENGINE / FLUIDS", ["Engine oil","Coolant if applicable","Fuel system","Air filter","Battery","Belts/hoses","Leaks","Hour meter"]],
+["GENERATOR ELECTRICAL", ["Output voltage/frequency","Receptacles","Breakers","GFCI function","Grounding point","Cords/plugs","Control panel","Emergency stop"]],
+["PUMP SYSTEM", ["Pump housing","Suction connection","Discharge connection","Priming system","Seals/packing","Pressure/flow","Hoses/fittings","Leaks"]],
+["FRAME / TRAILER", ["Frame/skid","Lifting points","Fuel tank mounting","Trailer tires/wheels if equipped","Coupler/chains/brakes/lights if equipped"]],
+["SAFETY", ["Guards/shields","Hot surface/exhaust protection","Decals","Fire extinguisher if required"]],
+["TITAN / HOURS", ["Titan installed if applicable","Titan serial/reporting","Hours recorded"]],
+["TRANSFER", ["Accessories/hoses inventoried","Existing damage photographed","Open WO","Ready to Ship","Shipping damage","Ready for Service"]]
+]];
+
+CATEGORIES["golf-cart"] = ["Golf Cart", [
+["POWER SYSTEM", ["Battery pack charge/condition or engine oil/fuel","Battery terminals/cables","Battery hold-downs","Charger","Charge port","Motor/controller","Leaks if gas-powered"]],["DRIVE / STEERING", ["Forward/reverse selector","Accelerator operation","Steering free play","Tie rods/linkage","Rear axle/differential","No abnormal noise"]],
+["BRAKES", ["Service brake","Parking brake","Brake pedal travel","Brake cables/lines","Stopping test"]],
+["TIRES / SUSPENSION", ["All tire condition/PSI","Wheels/lug nuts","Wheel bearings","Springs/shocks","Suspension mounts"]],
+["SAFETY / ELECTRICAL", ["Headlights if equipped","Tail/brake lights","Turn signals","Horn","Reverse buzzer","Seat belts if equipped","Mirrors","Windshield","Roof/canopy","Grab handles"]],
+["BODY / CARGO", ["Seats","Body panels","Bumpers","Cargo box if equipped","Hitch","Keys","Asset ID"]],
+["FUNCTION / TRANSFER", ["Road/yard test","Speed/governor condition","Existing damage photographed","Open WO","Ready to Ship","Shipping damage","Ready for Service"]]
+]];
+
+CATEGORIES["side-by-side-utv"] = ["Side by Side UTV", [
+["ENGINE / FLUIDS", ["Engine oil","Coolant","Fuel system","Air filter","Battery","Belts/CVT","Leaks","Hour meter/odometer"]],
+["DRIVETRAIN", ["Transmission/gear selection","2WD/4WD/AWD function","Differentials","CV axles/boots","Driveshaft","Clutch/CVT operation"]],
+["TIRES / SUSPENSION", ["LF/RF/LR/RR tire condition/PSI","Wheels/lug nuts","Shocks/springs","A-arms/control arms","Wheel bearings","Steering/tie rods"]],
+["BRAKES", ["Service brakes","Parking brake","Brake fluid","Brake lines/hoses","Pads/rotors visual condition"]],
+["ROPS / OCCUPANT SAFETY", ["ROPS/cage","Seat belts","Seats","Doors/nets","Grab handles","Windshield if equipped","Mirrors"]],
+["LIGHTS / CONTROLS", ["Headlights","Tail/brake lights","Turn signals if equipped","Hazards if equipped","Horn","Backup alarm if equipped","Instrument cluster","Warning lights","Winch if equipped"]],
+["BODY / CARGO", ["Body panels","Bumpers","Skid plates","Cargo bed","Tailgate","Hitch/receiver","Tie-down points"]],
+["TITAN / TRANSFER", ["Titan installed/reporting","Keys","Existing damage photographed","Open WO","Ready to Ship","Shipping damage","Ready for Service"]]
+]];
+
+CATEGORIES["lawn-mower"] = ["Lawn Mower", [
+["ENGINE / FLUIDS", ["Engine oil","Fuel system","Air filter","Battery","Belts","Cooling screens/fins","Leaks","Hour meter"]],
+["DECK / BLADES", ["Mower deck condition","Blades condition/sharpness","Blade fasteners","Spindles/bearings","Deck belt","Belt guards","Deck height adjustment","Discharge chute/guard"]],
+["DRIVE / STEERING", ["Transmission/hydrostatic drive","Forward/reverse","Steering controls","Drive belt","Axles/wheel motors","Parking brake"]],
+["TIRES / WHEELS", ["Front tires/casters","Rear tires","Tire PSI","Wheels/lug nuts","Caster bearings"]],
+["OPERATOR SAFETY", ["Seat","Seat switch/operator presence","Blade/PTO interlock","Parking brake interlock","ROPS if equipped","Seat belt if equipped","Guards/shields","Warning decals"]],
+["FUNCTION", ["Engine start/idle","PTO/blade engagement","Deck lift","Steering/drive test","No abnormal vibration/noise","Gauges/warning lights"]],
+["TRANSFER", ["Keys","Existing damage photographed","Open WO","Ready to Ship","Shipping damage","Ready for Service"]]
+]];
+
+CATEGORIES["lifting-equipment"] = ["Lifting Equipment", [
+["IDENTIFICATION / RATING", ["Asset ID/tag legible","Manufacturer/model/serial","Rated capacity / WLL legible","Capacity appropriate for intended use","Inspection tag/current status"]],
+["STRUCTURE", ["Frame/body condition","Welds free of cracks","No bends/deformation","No excessive corrosion","No unauthorized modifications","Load-bearing surfaces condition"]],
+["HOOKS / EYES / LIFT POINTS", ["Hooks condition","Hook throat opening","Safety latches","Lifting eyes/padeyes","Shackles","Pins/retainers","Swivels"]],
+["SLINGS / CHAINS / WIRE ROPE", ["Chain links condition","Wire rope condition","Synthetic sling condition","End fittings","Identification tags","No cuts/kinks/birdcaging/stretch"]],
+["SPREADER / BEAM COMPONENTS", ["Beam condition","Adjustment holes/slots","End fittings","Bolts/fasteners","Pins secured","Load markings visible"]],
+["FUNCTION / SAFETY", ["Moving parts operate freely","Locking devices function","No binding","Required guards present","Warning labels legible","Remove from service criteria checked"]],
+["DOCUMENTATION", ["Inspection date recorded","Inspector recorded","Previous inspection record available","Certification/test record if required","Defects documented"]],
+["TRANSFER", ["Components inventoried","Existing damage photographed","Open repair/WO","Approved for Use / Ready to Ship","Shipping damage","Ready for Service"]]
+]];
+
+CATEGORIES["mud-mixing"] = ["Mud Mixing System", [
+["ENGINE / POWER", ["Engine oil","Fuel system","Air filter","Battery","Belts/hoses","Engine mounts","Starting/idle","Leaks","Hour meter"]],
+["TANK / FRAME", ["Mixing tank condition","Tank interior contamination","Tank lid/cover","Frame/skid/trailer","Welds","Mounting hardware","Drain valves","Sight gauge"]],
+["MIXING / AGITATION", ["Agitator operation","Agitator shaft/bearings","Paddles/impeller condition","Hopper/venturi condition","Bag cutter/table","Mixing circulation","No abnormal vibration"]],
+["PUMP / PLUMBING", ["Mixing pump operation","Pump seals","Suction lines","Discharge lines","Valves","Manifold","Hoses/fittings","Pressure gauge","Flow/pressure test","Leaks"]],
+["HYDRAULIC / CONTROLS", ["Hydraulic oil","Hydraulic hoses/fittings","Hydraulic motor","Control valves","Control levers self-center","Emergency stop if equipped","Guards/shields"]],
+["TRAILER COMPONENTS", ["Coupler/pintle","Safety chains","Jack","Tires/wheels","Brakes/breakaway","Lights","Axles/suspension"]],
+["TITAN / DATA", ["Asset/serial verified","Hour meter recorded","Titan installed if applicable","Titan reporting verified"]],
+["TRANSFER", ["Hoses/accessories inventoried","Existing damage photographed","Tank drained/secured as required","Open WO","Ready to Ship","Shipping damage","Ready for Service"]]
+]];
+
+CATEGORIES["rammer"] = ["Rammer", [
+["ENGINE / POWER", ["Engine oil","Fuel system","Air filter","Spark plug/ignition","Starting/idle","Throttle operation","Leaks"]],
+["RAMMING SYSTEM", ["Shoe/foot condition","Bellows condition","Spring/ramming mechanism","Fasteners","Handle mounts","Ramming action","No abnormal vibration/noise"]],
+["CONTROLS / SAFETY", ["Throttle control returns correctly","Stop switch","Handle condition","Vibration isolation mounts","Guards/covers","Warning decals"]],
+["GENERAL", ["Frame/body","Fuel cap","Hour meter if equipped","Asset ID/serial","Overall cleanliness"]],
+["FUNCTION / TRANSFER", ["Operational test","Existing damage photographed","Open WO","Ready to Ship","Shipping damage","Ready for Service"]]
+]];
+
+CATEGORIES["roller-compaction"] = ["Roller / Compaction Equipment", [
+["ENGINE / FLUIDS", ["Engine oil level/condition","Coolant level","Fuel system","Hydraulic oil","Air filter","Belts/hoses","Battery/terminals","Fluid leaks"]],
+["DRUM / COMPACTION", ["Drum condition","Drum scraper bars","Vibration system operation","Amplitude/frequency controls if equipped","Water spray system if equipped","Drum mounts/bearings","Articulation joint"]],
+["STEERING / DRIVE", ["Forward/reverse travel","Steering response","Drive motors/axles","Parking brake","Service brake if equipped","Tires condition/PSI if pneumatic roller"]],
+["OPERATOR / SAFETY", ["ROPS/FOPS","Seat belt","Operator presence system","Control levers self-center","Emergency stop","Horn","Backup alarm","Lights/beacon","Mirrors/camera","Safety decals"]],
+["FUNCTION / DIAGNOSTICS", ["Gauges/instrument panel","Fault/warning lights","Abnormal noise/vibration","Operating temperature","Hour meter"]],
+["TITAN GPS", ["Titan installed","Titan unit/serial recorded","Portal reporting verified","Hours match machine","Last Titan update"]],
+["TRANSFER", ["Existing damage photographed","Accessories inventoried","Open repair/WO documented","Ready to Ship","Shipping damage on receipt","Missing items on receipt","Ready for Service"]]
+]];
+
+CATEGORIES["sheet-piles"] = ["Sheet Piles", [
+["IDENTIFICATION / INVENTORY", ["Bundle/asset ID","Sheet pile type/profile","Length","Quantity","Manufacturer/heat/marking if available","Assigned project"]],
+["STRUCTURAL CONDITION", ["Overall straightness","No excessive bending","No twisting","No cracks","No severe corrosion/section loss","No unauthorized cuts/welds"]],
+["INTERLOCKS", ["Male interlock condition","Female interlock condition","Interlocks free of major deformation","Interlocks clear of debris","Test-fit/interlock engagement where practical"]],
+["ENDS / DRIVING SURFACES", ["Top driving end condition","Bottom/toe condition","No mushrooming affecting use","No severe edge damage","Splice areas condition"]],
+["HANDLING / STORAGE", ["Lifting holes/points condition if present","Bundles banded/secured","Dunnage/support adequate","Stored to prevent rolling/sliding","Mud/debris removed as needed"]],
+["DOCUMENTATION / TRANSFER", ["Quantity verified before shipment","Condition photos","Damaged pieces identified","Load securement verified","Receiving quantity verified","Shipping damage documented","Accepted for Use"]]]];
+
+CATEGORIES["skid-steer"] = ["Skid Steer / Compact Loader", [
+["ENGINE / FLUIDS", ["Engine oil","Coolant","Hydraulic oil","Fuel system","Air filter","Belts/hoses","Leaks"]],
+["TIRES / TRACKS", ["Tires/tracks condition","Tread / track wear","Track tension","Sprockets / rollers / idlers","Wheel lug nuts"]],
+["LIFT SYSTEM", ["Lift arms","Lift cylinders","Tilt cylinders","Pins/bushings","Hydraulic hoses","Lift arm support device"]],
+["QUICK COUPLER / ATTACHMENT", ["Quick coupler condition","Attachment locks engaged","Aux hydraulic couplers","Attachment condition","Attachment serial recorded"]],
+["OPERATOR SAFETY", ["Seat belt/restraint","ROPS/FOPS","Operator presence/interlock","Parking brake","Control lockout","Backup alarm","Horn","Lights"]],
+["FUNCTION TEST", ["Drive forward/reverse","Steering left/right","Lift/tilt function","Aux hydraulics","Controls self-center","Fault/warning lights"]],
+["TITAN / HOURS", ["Hour meter","Titan installed","Titan serial","Titan reporting","Last update"]],
+["TRANSFER", ["Attachments inventoried","Existing damage photographed","Open WO","Ready to Ship","Shipping damage","Ready for Service"]]
+]];
+
+CATEGORIES["small-equipment-attachment"] = ["Small Equipment / Attachment", [
+["IDENTIFICATION", ["Asset ID","Make/model","Serial number","Equipment/attachment type","Assigned parent asset if applicable"]],
+["GENERAL CONDITION", ["Frame/body condition","Welds","Fasteners","Guards/shields","Handles/steps","Decals/labels","Excessive corrosion/damage"]],
+["POWER SYSTEM", ["Engine/motor condition if equipped","Engine oil if applicable","Fuel system","Battery","Power cord/plug if electric","Starting/operation test","Leaks"]],
+["HYDRAULIC / PNEUMATIC", ["Hoses","Fittings/couplers","Cylinders/motors","Pressure lines","Hydraulic leaks","Pneumatic lines if equipped"]],
+["ATTACHMENT INTERFACE", ["Mounting plate","Pins/locks","Quick coupler interface","Safety retainers","Hydraulic/electrical connections","PTO/driveline if applicable"]],
+["WEAR COMPONENTS", ["Cutting edges/teeth","Blades","Bearings","Bushings","Chains/belts","Wear pads","Ground engaging components"]],
+["SAFETY / FUNCTION", ["Emergency stop if equipped","Controls self-center","Safety interlocks","Guards secure","Operational function test","Abnormal noise/vibration"]],
+["INVENTORY / TRANSFER", ["Accessories/tooling inventoried","Existing damage photographed","Open repair/WO","Ready to Ship","Shipping damage","Missing items","Ready for Service"]]
+]];
+
+CATEGORIES["trencher"] = ["Trencher", [
+["ENGINE / FLUIDS", ["Engine oil","Coolant","Fuel","Hydraulic oil","Air filter","Battery","Belts/hoses","Leaks","Hour meter"]],
+["UNDERCARRIAGE / DRIVE", ["Tracks/tires","Track tension","Sprockets/rollers/idlers","Drive motors","Forward/reverse travel","Steering"]],
+["TRENCHER BOOM / CHAIN", ["Boom condition","Digging chain condition/tension","Cutting teeth/carbide","Sprockets","Boom pivot/pins","Depth control","Crumber bar","Spoils auger"]],
+["HYDRAULICS", ["Pump operation","Hoses/fittings","Cylinders","Aux hydraulics","Hydraulic leaks","Operating pressure if specified"]],
+["CONTROLS / SAFETY", ["Control levers self-center","Operator presence system","Emergency stop","Parking brake","Guards/shields","Warning decals","Horn","Backup alarm","Lights"]],
+["FUNCTION TEST", ["Chain engage/disengage","Boom raise/lower","Travel function","Steering","No abnormal vibration/noise","Fault codes"]],
+["TITAN / TRANSFER", ["Titan installed/reporting","Attachments/tooling inventoried","Existing damage photographed","Open WO","Ready to Ship","Shipping damage","Ready for Service"]]
+]];
+
+CATEGORIES["vacuum-excavator"] = ["Vacuum Excavator", [
+["ENGINE / POWER", ["Engine oil","Coolant","Fuel","Air filter","Battery","Belts/hoses","Leaks"]],
+["VACUUM SYSTEM", ["Blower/vacuum operation","Vacuum hose condition","Hose fittings","Filters/separators","Relief valves","Spoil tank condition","Tank door/seal/locks"]],
+["WATER SYSTEM", ["Water tank","Water pump","Pump oil if applicable","Water hoses","Lance/wand","Pressure control","Leaks"]],
+["HYDRAULICS", ["Hydraulic oil","Hydraulic hoses/fittings","Boom/door hydraulics","Hydraulic leaks"]],
+["TRAILER / CHASSIS", ["Coupler/pintle","Safety chains","Breakaway","Brakes","Tires/wheels","Lights","Frame/jack"]],
+["SAFETY", ["Emergency stop","Grounding/bonding if equipped","Guards","Warning decals","PPE/tools"]],
+["TITAN / HOURS", ["Hour meter","Titan installed","Titan serial","Portal reporting"]],
+["TRANSFER", ["Accessories inventoried","Existing damage photographed","Open WO","Ready to Ship","Shipping damage","Ready for Service"]]
+]];
+
+CATEGORIES["vibratory-hammer"] = ["Vibratory Hammer", [
+["IDENTIFICATION", ["Asset ID","Make/model/serial","Rated specifications recorded","Assigned power pack/hoses identified"]],
+["STRUCTURE", ["Hammer housing/frame","Welds","Lifting points","Fasteners","Guards/covers","No cracks/deformation"]],
+["CLAMP / JAWS", ["Clamp body","Clamp jaws/teeth","Jaw wear","Clamp cylinder","Pins/retainers","Clamp opens/closes correctly","Clamp pressure verified"]],
+["VIBRATORY SYSTEM", ["Eccentric/gearbox housing","Bearings","Gear oil level/condition","Vibration function","Amplitude/frequency if adjustable","No abnormal noise/heat"]],
+["HYDRAULICS", ["Hydraulic hoses","Fittings/couplers","Case drain","Hydraulic motor","Operating pressure/flow","Leaks"]],
+["ELECTRICAL / CONTROLS", ["Control pendant/remote","Emergency stop","Cables/connectors","Control functions","Warning labels"]],
+["RIGGING / ACCESSORIES", ["Suspension/shackle","Lifting rigging","Hose bundle","Power pack interface","Tooling/accessories inventoried"]],
+["TRANSFER", ["Existing damage photographed","Hoses capped/secured","Open WO","Ready to Ship","Shipping damage","Ready for Service"]]
+]];
+
+// ===== Asset info + category from URL =====
+const params = new URLSearchParams(window.location.search);
+const asset = {
+  assetId: params.get("assetId") || "UNKNOWN",
+  folderName: params.get("folderName") || (params.get("assetId") || "UNKNOWN"),
+  make: params.get("make") || "",
+  model: params.get("model") || "",
+  vin: params.get("vin") || ""
+};
+const categoryKey = (params.get("category") || "").toLowerCase().trim();
+const categoryEntry = CATEGORIES[categoryKey];
+
+document.getElementById("assetHeading").textContent = `${asset.assetId} — ${asset.make} ${asset.model}`.trim();
+document.getElementById("h_date").valueAsDate = new Date();
+
+if (!categoryEntry) {
+  document.getElementById("catMissing").innerHTML =
+    `<div class="catmissing">No Fleet/Service checklist is configured for category "${categoryKey || "(none)"}" on this asset. Available categories: ${Object.keys(CATEGORIES).join(", ")}.</div>`;
+  document.getElementById("inspectionForm").style.display = "none";
+}
+
+const CATEGORY_LABEL = categoryEntry ? categoryEntry[0] : "";
+const SECTIONS = categoryEntry ? categoryEntry[1] : [];
+const TOTAL_ITEMS = SECTIONS.reduce((n,s) => n + s[1].length, 0);
+if (categoryEntry) {
+  document.querySelector("header h1").textContent = CATEGORY_LABEL + " Fleet Service & Interstate Transfer Inspection";
+}
+
+// ===== State =====
+const STORAGE_KEY = "cmg_eqfleetsvc_" + categoryKey + "_" + asset.assetId;
+let state = {
+  header: {}, footer: {},
+  items: SECTIONS.map(s => s[1].map(() => ({ condition:null, reading:"", notes:"", repair:null })))
+};
+let photos = [];
+
+function saveState() {
+  collectHeaderFooter();
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ savedAt: new Date().toISOString(), state })); } catch(e) {}
+}
+function collectHeaderFooter() {
+  ["origin","destination","projectYard","receivingProjectYard","date","workOrder","mileage","inspector","driver","attachmentConfig","titanUnit"].forEach(k => {
+    const el = document.getElementById("h_" + k); if (el) state.header[k] = el.value;
+  });
+  ["releasedBy","releaseDate","readyToShip","receivedBy","receivedDate","shippingDamage","openRepairWO","missingItems","readyForService"].forEach(k => {
+    const el = document.getElementById("f_" + k); if (el) state.footer[k] = el.value;
+  });
+}
+
+// ===== Build sections =====
+const container = document.getElementById("sectionsContainer");
+SECTIONS.forEach((sec, sIdx) => {
+  const [title, items] = sec;
+  const secDiv = document.createElement("div");
+  secDiv.className = "section";
+  secDiv.innerHTML = `
+    <div class="section-head" data-idx="${sIdx}">
+      <div><span class="section-title">${title}</span></div>
+      <div style="display:flex;align-items:center;">
+        <span class="section-badge" id="badge-${sIdx}">0/${items.length}</span>
+        <span class="section-chevron">▶</span>
+      </div>
+    </div>
+    <div class="section-body" id="body-${sIdx}"></div>`;
+  container.appendChild(secDiv);
+
+  const body = secDiv.querySelector(".section-body");
+  items.forEach((itemText, iIdx) => {
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerHTML = `
+      <div class="item-q">${iIdx + 1}. ${itemText}</div>
+      <div class="btnrow" data-role="condition">
+        <button type="button" data-v="Pass">Pass</button>
+        <button type="button" data-v="Attn">Attn</button>
+        <button type="button" data-v="Fail">Fail</button>
+        <button type="button" data-v="N/A">N/A</button>
+      </div>
+      <div class="item-fields">
+        <input type="text" placeholder="Reading / Measurement" data-role="reading">
+        <input type="text" placeholder="Notes / Defects" data-role="notes" class="full">
+      </div>
+      <div class="repair-row">
+        <span class="lbl">Repair Req.</span>
+        <div class="btnrow" data-role="repair">
+          <button type="button" data-v="No">No</button>
+          <button type="button" data-v="Yes">Yes</button>
+          <button type="button" data-v="N/A">N/A</button>
+        </div>
+      </div>`;
+    body.appendChild(div);
+
+    const condBtns = div.querySelectorAll('[data-role="condition"] button');
+    const repairBtns = div.querySelectorAll('[data-role="repair"] button');
+    const readingInput = div.querySelector('[data-role="reading"]');
+    const notesInput = div.querySelector('[data-role="notes"]');
+
+    condBtns.forEach(btn => btn.addEventListener("click", () => {
+      condBtns.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      state.items[sIdx][iIdx].condition = btn.dataset.v;
+      updateProgress(); saveState();
+    }));
+    repairBtns.forEach(btn => btn.addEventListener("click", () => {
+      repairBtns.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      state.items[sIdx][iIdx].repair = btn.dataset.v;
+      saveState();
+    }));
+    readingInput.addEventListener("input", () => { state.items[sIdx][iIdx].reading = readingInput.value; saveState(); });
+    notesInput.addEventListener("input", () => { state.items[sIdx][iIdx].notes = notesInput.value; saveState(); });
+  });
+
+  secDiv.querySelector(".section-head").addEventListener("click", () => {
+    secDiv.classList.toggle("open");
+  });
+});
+document.getElementById("expandAllBtn").addEventListener("click", () => document.querySelectorAll(".section").forEach(s => s.classList.add("open")));
+document.getElementById("collapseAllBtn").addEventListener("click", () => document.querySelectorAll(".section").forEach(s => s.classList.remove("open")));
+
+function updateProgress() {
+  let done = 0;
+  SECTIONS.forEach((sec, sIdx) => {
+    let secDone = 0;
+    sec[1].forEach((_, iIdx) => { if (state.items[sIdx][iIdx].condition) secDone++; });
+    done += secDone;
+    const badge = document.getElementById("badge-" + sIdx);
+    badge.textContent = secDone + "/" + sec[1].length;
+    badge.className = "section-badge" + (secDone === sec[1].length ? " complete" : "");
+  });
+  document.getElementById("progText").textContent = done + " of " + TOTAL_ITEMS + " items completed";
+  document.getElementById("progFill").style.width = (TOTAL_ITEMS ? Math.round(done / TOTAL_ITEMS * 100) : 0) + "%";
+}
+
+// ===== Header/footer inputs also autosave =====
+document.querySelectorAll('input[id^="h_"], input[id^="f_"]').forEach(el => el.addEventListener("input", saveState));
+
+// ===== Resume from localStorage =====
+function applyState(loaded) {
+  state = loaded;
+  Object.keys(state.header || {}).forEach(k => { const el = document.getElementById("h_" + k); if (el && state.header[k]) el.value = state.header[k]; });
+  Object.keys(state.footer || {}).forEach(k => { const el = document.getElementById("f_" + k); if (el && state.footer[k]) el.value = state.footer[k]; });
+  SECTIONS.forEach((sec, sIdx) => {
+    sec[1].forEach((_, iIdx) => {
+      const rec = state.items[sIdx][iIdx];
+      const body = document.getElementById("body-" + sIdx);
+      const itemDiv = body.children[iIdx];
+      if (rec.condition) itemDiv.querySelector(`[data-role="condition"] button[data-v="${rec.condition}"]`)?.classList.add("active");
+      if (rec.repair) itemDiv.querySelector(`[data-role="repair"] button[data-v="${rec.repair}"]`)?.classList.add("active");
+      if (rec.reading) itemDiv.querySelector('[data-role="reading"]').value = rec.reading;
+      if (rec.notes) itemDiv.querySelector('[data-role="notes"]').value = rec.notes;
+    });
+  });
+  updateProgress();
+}
+
+if (categoryEntry) {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      const when = new Date(parsed.savedAt).toLocaleString();
+      document.getElementById("resumeBanner").innerHTML = `
+        <div class="resume-banner">
+          <div>A saved in-progress inspection for this asset was found (last saved ${when}).</div>
+          <button type="button" id="resumeBtn">Resume It</button>
+          <button type="button" id="discardBtn">Start Fresh</button>
+        </div>`;
+      document.getElementById("resumeBtn").addEventListener("click", () => {
+        applyState(parsed.state);
+        document.getElementById("resumeBanner").innerHTML = "";
+      });
+      document.getElementById("discardBtn").addEventListener("click", () => {
+        localStorage.removeItem(STORAGE_KEY);
+        document.getElementById("resumeBanner").innerHTML = "";
+      });
+    }
+  } catch(e) {}
+}
+
+updateProgress();
+
+// ===== Photos =====
+const thumbs = document.getElementById("thumbs");
+const photoCountEl = document.getElementById("photoCount");
+document.getElementById("addPhotoBtn").addEventListener("click", () => document.getElementById("photoInput").click());
+document.getElementById("photoInput").addEventListener("change", async (e) => {
+  const files = Array.from(e.target.files || []);
+  for (const file of files) {
+    if (photos.length >= MAX_PHOTOS) { alert(`Maximum ${MAX_PHOTOS} photos.`); break; }
+    try { const resized = await resizeImage(file); photos.push(resized); addThumb(resized); } catch(err) { console.error(err); }
+  }
+  e.target.value = "";
+  photoCountEl.textContent = photos.length + " photo" + (photos.length===1?"":"s") + " added";
+});
+function resizeImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image(); const reader = new FileReader();
+    reader.onload = (e) => { img.src = e.target.result; };
+    reader.onerror = reject;
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > height && width > MAX_PHOTO_DIMENSION) { height = Math.round(height*(MAX_PHOTO_DIMENSION/width)); width = MAX_PHOTO_DIMENSION; }
+      else if (height > MAX_PHOTO_DIMENSION) { width = Math.round(width*(MAX_PHOTO_DIMENSION/height)); height = MAX_PHOTO_DIMENSION; }
+      const canvas = document.createElement("canvas"); canvas.width = width; canvas.height = height;
+      canvas.getContext("2d").drawImage(img,0,0,width,height);
+      const dataUrl = canvas.toDataURL("image/jpeg", JPEG_QUALITY);
+      resolve({ name:`photo_${Date.now()}_${Math.random().toString(36).slice(2,7)}.jpg`, contentType:"image/jpeg", base64:dataUrl.split(",")[1], previewUrl:dataUrl });
+    };
+    img.onerror = reject; reader.readAsDataURL(file);
+  });
+}
+function addThumb(photo) {
+  const div = document.createElement("div"); div.className = "thumb";
+  div.innerHTML = `<img src="${photo.previewUrl}"><button type="button">✕</button>`;
+  div.querySelector("button").addEventListener("click", () => {
+    photos = photos.filter(p => p !== photo); div.remove();
+    photoCountEl.textContent = photos.length + " photo" + (photos.length===1?"":"s") + " added";
+  });
+  thumbs.appendChild(div);
+}
+
+// ===== Build plain-text report =====
+function buildReportText() {
+  const h = state.header, f = state.footer;
+  let lines = [];
+  lines.push("CMG PIPELINES - " + CATEGORY_LABEL.toUpperCase() + " FLEET SERVICE & INTERSTATE TRANSFER INSPECTION");
+  lines.push("Asset: " + asset.assetId + " - " + asset.make + " " + asset.model + " (VIN " + asset.vin + ")");
+  lines.push("");
+  lines.push("Origin/From: " + (h.origin||"") + "   Destination/To: " + (h.destination||"") + "   Inspection Date: " + (h.date||""));
+  lines.push("Project/Yard: " + (h.projectYard||"") + "   Receiving Project/Yard: " + (h.receivingProjectYard||"") + "   Work Order #: " + (h.workOrder||""));
+  lines.push("Hours/Mileage/Usage: " + (h.mileage||"") + "   Inspector/Mechanic: " + (h.inspector||"") + "   Transporter/Driver: " + (h.driver||""));
+  lines.push("Attachment/Config: " + (h.attachmentConfig||"") + "   Titan GPS Unit #: " + (h.titanUnit||""));
+  lines.push("");
+  SECTIONS.forEach((sec, sIdx) => {
+    lines.push("== " + sec[0] + " ==");
+    sec[1].forEach((itemText, iIdx) => {
+      const r = state.items[sIdx][iIdx];
+      lines.push("- " + itemText + " | Condition: " + (r.condition||"") + " | Reading: " + (r.reading||"") + " | Notes: " + (r.notes||"") + " | Repair Required: " + (r.repair||""));
+    });
+    lines.push("");
+  });
+  lines.push("== TRANSFER RELEASE / RECEIVING ACCEPTANCE ==");
+  lines.push("Released By: " + (f.releasedBy||"") + "   Release Date: " + (f.releaseDate||"") + "   Ready to Ship?: " + (f.readyToShip||""));
+  lines.push("Received By: " + (f.receivedBy||"") + "   Received Date: " + (f.receivedDate||"") + "   Shipping Damage?: " + (f.shippingDamage||""));  lines.push("Open Repair/WO #: " + (f.openRepairWO||"") + "   Missing Items: " + (f.missingItems||"") + "   Ready for Service?: " + (f.readyForService||""));
+  return lines.join("\n");
+}
+function computeOverallStatus() {
+  let hasFail = false, hasAttn = false;
+  state.items.forEach(sec => sec.forEach(r => { if (r.condition === "Fail") hasFail = true; if (r.condition === "Attn") hasAttn = true; }));
+  return hasFail ? "FAIL" : (hasAttn ? "ATTN" : "OK");
+}
+
+// ===== Submit =====
+const form = document.getElementById("inspectionForm");
+const submitBtn = document.getElementById("submitBtn");
+const formMsg = document.getElementById("formMsg");
+const overlay = document.getElementById("overlay");
+const overlayText = document.getElementById("overlayText");
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  formMsg.textContent = ""; formMsg.className = "";
+  collectHeaderFooter();
+
+  if (!document.getElementById("h_date").value) { formMsg.textContent = "Please enter the inspection date."; formMsg.className = "err"; return; }
+  if (!document.getElementById("h_inspector").value.trim()) { formMsg.textContent = "Please enter the inspector/mechanic name."; formMsg.className = "err"; return; }
+  const answered = state.items.reduce((n, sec) => n + sec.filter(r => r.condition).length, 0);
+  if (answered < TOTAL_ITEMS) {
+    formMsg.textContent = `Please complete every checklist item (${answered} of ${TOTAL_ITEMS} done — use N/A if it doesn't apply).`;
+    formMsg.className = "err";
+    return;
+  }
+
+  const payload = {
+    formType: FORM_TYPE,
+    category: categoryKey,
+    assetId: asset.assetId,
+    folderName: asset.folderName,
+    make: asset.make,
+    model: asset.model,
+    vin: asset.vin,
+    date: state.header.date || "",
+    inspector: state.header.inspector || "",
+    projectYard: state.header.projectYard || "",
+    hoursMileage: state.header.mileage || "",
+    workOrder: state.header.workOrder || "",
+    equipmentStatus: computeOverallStatus(),
+    fullReportText: buildReportText(),
+    notes: "See attached full Fleet/Service inspection report.",
+    photos: photos.map(p => ({ name: p.name, contentType: p.contentType, base64: p.base64 }))
+  };
+
+  submitBtn.disabled = true;
+  overlay.className = "overlay show";
+  overlayText.textContent = "Uploading inspection…";
+
+  try {
+    const res = await fetch(POWER_AUTOMATE_URL, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload) });
+    if (!res.ok) throw new Error(`Server responded ${res.status}`);
+    localStorage.removeItem(STORAGE_KEY);
+    overlay.className = "overlay show success";
+    overlayText.textContent = "Inspection submitted. Thank you!";
+    setTimeout(() => { window.location.reload(); }, 2500);
+  } catch (err) {
+    overlay.className = "overlay";
+    submitBtn.disabled = false;
+    formMsg.textContent = "Submission failed — check your connection and try again. (Your progress is saved locally.)";
+    formMsg.className = "err";
+    console.error(err);
+  }
+});
+</script>
+</body>
+</html>
+
