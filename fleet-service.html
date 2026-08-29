@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Vehicle Fleet Service &amp; Interstate Transfer Inspection — CMG Pipelines</title>
+<style>
+  :root {
+    --steel: #1F3B57; --steel-dark: #142838;
+    --rust: #C2571A; --rust-dark: #9C4410;
+    --ok: #2C6B2F; --ok-bg: #E4F1E4;
+    --attn: #96590A; --attn-bg: #FBEBD6;
+    --fail: #8C2A20; --fail-bg: #F6DCDA;
+    --na: #555; --na-bg: #E6E6E6;
+    --paper: #F7F5F1; --ink: #1A1A1A; --line: #D8D3C8;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; background:var(--paper); color:var(--ink); padding-bottom:64px; }
+  header { background:var(--steel); color:#fff; padding:16px; text-align:center; position:sticky; top:0; z-index:10; box-shadow:0 2px 8px rgba(0,0,0,.15); }
+  header h1 { margin:0; font-size:15px; letter-spacing:.03em; text-transform:uppercase; }
+  header .asset { margin-top:4px; font-size:15px; color:#FFD9B8; font-weight:700; }
+  header .prog { margin-top:6px; font-size:12px; color:#B9C6D3; }
+  header .progbar { height:6px; background:rgba(255,255,255,.2); border-radius:3px; margin-top:4px; overflow:hidden; }
+  header .progbar-fill { height:100%; background:var(--rust); width:0%; transition:width .2s; }
+
+  main { max-width:720px; margin:0 auto; padding:12px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin-bottom:12px; }
+  .card h2 { font-size:12px; text-transform:uppercase; letter-spacing:.07em; color:var(--rust-dark); margin:0 0 10px; border-bottom:2px solid var(--rust); padding-bottom:6px; }
+  label { display:block; font-size:12px; font-weight:600; margin:8px 0 3px; }
+  label:first-child { margin-top:0; }
+  input[type=text], input[type=date], input[type=number], textarea, select {
+    width:100%; padding:9px 10px; font-size:15px; border:1px solid var(--line); border-radius:7px; background:#fdfdfc; font-family:inherit;
+  }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:0 12px; }
+
+  .section { background:#fff; border:1px solid var(--line); border-radius:10px; margin-bottom:10px; overflow:hidden; }
+  .section-head { display:flex; align-items:center; justify-content:space-between; padding:12px 14px; cursor:pointer; background:#fff; }
+  .section-head:active { background:#f5f3ee; }
+  .section-title { font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--steel-dark); }
+  .section-badge { font-size:11px; font-weight:700; padding:3px 8px; border-radius:10px; background:var(--na-bg); color:var(--na); }
+  .section-badge.complete { background:var(--ok-bg); color:var(--ok); }
+  .section-chevron { font-size:12px; color:#999; margin-left:8px; transition:transform .15s; }
+  .section.open .section-chevron { transform:rotate(90deg); }
+  .section-body { display:none; padding:0 14px 12px; }
+  .section.open .section-body { display:block; }
+
+  .item { border-top:1px solid var(--line); padding:10px 0; }
+  .item:first-child { border-top:none; }
+  .item-q { font-size:13.5px; font-weight:600; margin-bottom:7px; }
+  .btnrow { display:grid; grid-template-columns:repeat(4,1fr); gap:5px; margin-bottom:6px; }
+  .btnrow button { padding:8px 2px; font-size:11.5px; font-weight:700; border-radius:6px; border:2px solid var(--line); background:#fff; color:#555; cursor:pointer; }
+  .btnrow button[data-v="Pass"].active, .btnrow button[data-v="No"].active { background:var(--ok-bg); border-color:var(--ok); color:var(--ok); }
+  .btnrow button[data-v="Attn"].active { background:var(--attn-bg); border-color:var(--attn); color:var(--attn); }
+  .btnrow button[data-v="Fail"].active, .btnrow button[data-v="Yes"].active { background:var(--fail-bg); border-color:var(--fail); color:var(--fail); }
+  .btnrow button[data-v="N/A"].active { background:var(--na-bg); border-color:var(--na); color:var(--na); }
+  .item-fields { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:6px; }
+  .item-fields input { font-size:13px; padding:7px 8px; }
+  .item-fields .full { grid-column:1 / -1; }
+  .repair-row { display:flex; align-items:center; gap:8px; margin-top:6px; }
+  .repair-row .lbl { font-size:11.5px; font-weight:700; color:#777; text-transform:uppercase; letter-spacing:.03em; }
+  .repair-row .btnrow { grid-template-columns:repeat(3,1fr); margin-bottom:0; flex:1; }
+
+  .photo-btn { display:block; width:100%; padding:12px; font-size:14px; font-weight:700; border-radius:8px; border:2px dashed var(--rust); background:#FFF4EC; color:var(--rust-dark); cursor:pointer; margin-bottom:10px; }
+  #photoInput { display:none; }
+  .thumbs { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .thumb { position:relative; aspect-ratio:1; border-radius:6px; overflow:hidden; border:1px solid var(--line); }
+  .thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+  .thumb button { position:absolute; top:2px; right:2px; width:20px; height:20px; line-height:18px; border-radius:50%; border:none; background:rgba(0,0,0,.65); color:#fff; font-size:13px; cursor:pointer; }
+
+  .submit-bar { position:sticky; bottom:0; background:var(--paper); padding:10px 12px 16px; }
+  #submitBtn { width:100%; padding:15px; font-size:15px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; border:none; border-radius:10px; background:var(--rust); color:#fff; cursor:pointer; }
+  #submitBtn:disabled { background:#C7BFAE; cursor:not-allowed; }
+  #formMsg { text-align:center; font-size:13px; margin-top:8px; min-height:18px; font-weight:600; }
+  #formMsg.err { color:var(--fail); } #formMsg.ok { color:var(--ok); }
+
+  .resume-banner { background:var(--attn-bg); color:var(--attn); border:1px solid var(--attn); border-radius:8px; padding:10px 12px; margin-bottom:12px; font-size:13px; }
+  .resume-banner button { margin-top:8px; margin-right:8px; padding:7px 12px; border-radius:6px; border:1px solid var(--attn); background:#fff; color:var(--attn); font-weight:700; font-size:12px; cursor:pointer; }
+
+  .overlay { position:fixed; inset:0; background:rgba(20,40,56,.92); color:#fff; display:none; align-items:center; justify-content:center; flex-direction:column; text-align:center; padding:24px; z-index:20; }
+  .overlay.show { display:flex; }
+  .spinner { width:40px; height:40px; border:4px solid rgba(255,255,255,.25); border-top-color:var(--rust); border-radius:50%; animation:spin .9s linear infinite; margin-bottom:14px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .overlay.success .spinner { display:none; }
+  .checkmark { font-size:46px; color:#7CD98F; margin-bottom:10px; display:none; }
+  .overlay.success .checkmark { display:block; }
+
+  .expandall { display:flex; gap:8px; margin-bottom:10px; }
+  .expandall button { flex:1; padding:8px; font-size:12px; font-weight:700; border-radius:7px; border:1px solid var(--line); background:#fff; color:var(--steel-dark); cursor:pointer; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Vehicle Fleet Service &amp; Interstate Transfer Inspection</h1>
+  <div class="asset" id="assetHeading">Loading asset…</div>
+  <div class="prog" id="progText">0 of 0 items completed</div>
+  <div class="progbar"><div class="progbar-fill" id="progFill"></div></div>
+</header>
+
+<main>
+  <div id="resumeBanner"></div>
+
+  <form id="inspectionForm">
+    <div class="card">
+      <h2>Header</h2>
+      <div class="grid2">
+        <div><label>Origin / From</label><input type="text" id="h_origin"></div>
+        <div><label>Destination / To</label><input type="text" id="h_destination"></div>
+        <div><label>Project / Yard</label><input type="text" id="h_projectYard"></div>
+        <div><label>Receiving Project / Yard</label><input type="text" id="h_receivingProjectYard"></div>
+        <div><label>Inspection Date</label><input type="date" id="h_date" required></div>
+        <div><label>Work Order #</label><input type="text" id="h_workOrder"></div>
+        <div><label>License Plate</label><input type="text" id="h_licensePlate"></div>
+        <div><label>Mileage</label><input type="text" id="h_mileage" inputmode="numeric"></div>
+        <div><label>Inspector / Mechanic</label><input type="text" id="h_inspector" required></div>
+        <div><label>Driver / Transporter</label><input type="text" id="h_driver"></div>
+        <div><label>Vehicle Type</label><input type="text" id="h_vehicleType"></div>
+        <div><label>Titan GPS Unit #</label><input type="text" id="h_titanUnit"></div>
+      </div>
+    </div>
+
+    <div class="expandall">
+      <button type="button" id="expandAllBtn">Expand All Sections</button>
+      <button type="button" id="collapseAllBtn">Collapse All Sections</button>
+    </div>
+
+    <div id="sectionsContainer"></div>
+
+    <div class="card">
+      <h2>Photos <span style="font-weight:400;color:#777;">(optional — attach for any damage or defects noted above)</span></h2>
+      <div id="photoCount" style="font-size:13px;font-weight:700;margin-bottom:10px;">0 photos added</div>
+      <button type="button" class="photo-btn" id="addPhotoBtn">📷 Add Photo</button>
+      <input type="file" id="photoInput" accept="image/*" capture="environment" multiple>
+      <div class="thumbs" id="thumbs"></div>
+    </div>
+
+    <div class="card">
+      <h2>Transfer Release / Receiving Acceptance</h2>
+      <div class="grid2">
+        <div><label>Released By</label><input type="text" id="f_releasedBy"></div>
+        <div><label>Release Date</label><input type="date" id="f_releaseDate"></div>
+        <div><label>Ready to Ship?</label><input type="text" id="f_readyToShip" placeholder="Yes / No"></div>
+        <div><label>Received By</label><input type="text" id="f_receivedBy"></div>
+        <div><label>Received Date</label><input type="date" id="f_receivedDate"></div>
+        <div><label>Shipping Damage?</label><input type="text" id="f_shippingDamage" placeholder="Yes / No"></div>
+        <div><label>Open Repair / WO #</label><input type="text" id="f_openRepairWO"></div>
+        <div><label>Missing Items</label><input type="text" id="f_missingItems"></div>
+        <div><label>Ready for Service?</label><input type="text" id="f_readyForService" placeholder="Yes / No"></div>
+      </div>
+    </div>
+
+    <div class="submit-bar">
+      <button type="submit" id="submitBtn">Submit Inspection</button>
+      <div id="formMsg"></div>
+    </div>
+  </form>
+</main>
+
+<div class="overlay" id="overlay">
+  <div class="spinner"></div>
+  <div class="checkmark">✓</div>
+  <div id="overlayText" style="font-size:15px;font-weight:600;">Uploading inspection…</div>
+</div>
+
+<script>
+// ===== CONFIGURATION =====
+const POWER_AUTOMATE_URL = "https://default58be2c3c790d488697834bdc51b5d3.aa.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/13/workflows/433933cdcdb4442f80b15efc1098fefe/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=SXCc1_YpU1bZIMa0X2FJHQVaGbHxi14Uwg6GBnprWfk";
+const FORM_TYPE = "FLEETSVC";
+const MAX_PHOTOS = 20;
+const MAX_PHOTO_DIMENSION = 1600;
+const JPEG_QUALITY = 0.72;
+
+// ===== Section / item data =====
+const SECTIONS = [
+["IDENTIFICATION / DOCUMENTS", ["Registration present/current","Insurance card present/current","License plate secure/legible","VIN matches records","Asset ID marking present/legible","Owner / ownership verified"]],
+["ENGINE / UNDERHOOD", ["Engine oil level/condition","Coolant level/condition","Power steering fluid (if applicable)","Brake fluid level","Washer fluid","Belts condition/tension","Hoses/clamps condition","Engine oil leaks","Coolant leaks","Fuel leaks","Other fluid leaks","Air filter condition","Battery secure / terminals clean","Charging system / starting condition"]],
+["DIESEL / EMISSIONS", ["DEF level (if applicable)","DEF / SCR warning lights","DPF / regen status","Exhaust system secure / no visible leaks","Emissions fault codes"]],
+["TRANSMISSION / DRIVELINE", ["Transmission operation/fluid condition","Transfer case / 4WD operation","Differential leaks","Driveshaft / U-joints condition","CV axles / boots condition"]],
+["BRAKES", ["Service brake operation","Parking brake operation","Brake pedal feel/travel","Front brake condition","Rear brake condition","Brake hoses/lines","ABS warning light off"]],
+["STEERING / SUSPENSION", ["Steering free play / response","Power steering operation","Tie rods / steering linkage","Ball joints","Shocks / struts","Springs","Wheel bearings","Suspension damage / abnormal wear"]],
+["TIRES / WHEELS", ["LF tire condition","LF tread depth","LF tire PSI","RF tire condition","RF tread depth","RF tire PSI","LR tire condition","LR tread depth","LR tire PSI","RR tire condition","RR tread depth","RR tire PSI","Spare tire present/condition","Wheels/rims condition","Lug nuts present/secure"]],
+["LIGHTING / ELECTRICAL", ["Low-beam headlights","High-beam headlights","Front turn signals","Rear turn signals","Brake lights","Tail/marker lights","Hazard flashers","Reverse lights","License plate lights","Work/strobe/beacon lights (if equipped)","Horn","12V/USB/accessory power"]],
+["GLASS / MIRRORS / CAB", ["Windshield condition","Side/rear glass condition","Mirrors secure/adjustable","Wipers condition/function","Washer system function","Driver seat secure","Seat belts latch/retract","Gauges/instrument cluster","HVAC / defrost operation","Doors/locks/windows","Interior condition"]],
+["SAFETY / DOT EQUIPMENT", ["Fire extinguisher present/charged/secured","Warning triangles present","First-aid kit present","Reflective vest / PPE present (if required)","Backup alarm (if equipped)","Backup camera (if equipped)","Safety decals / labels legible"]],
+["BODY / EXTERIOR", ["Front bumper/grille condition","Hood/fenders condition","Doors/body panels condition","Bed/cargo area condition","Tailgate/rear doors condition","Steps/running boards","Trailer hitch/receiver condition","Tow hooks","Mud flaps (if applicable)","Existing damage documented"]],
+["TITAN GPS / TELEMATICS", ["Titan GPS installed","Titan unit / serial number recorded","Device securely mounted","Device reporting to fleet portal","GPS location current","Mileage reporting matches vehicle","Last Titan update verified","GPS offline days / communication issue"]],
+["DIAGNOSTICS", ["Check-engine light off","ABS light off","Airbag/SRS light off","TPMS warning light off","Other warning lights","Diagnostic trouble codes scanned","Open recalls / service campaigns reviewed"]],
+["ROAD TEST", ["Engine starts/idles normally","Acceleration/power normal","Transmission shifts normally","Steering tracks correctly","Braking straight/no abnormal vibration","No abnormal noise/vibration","Speedometer/odometer function","Cruise control (if equipped)","Road test completed"]],
+["PRE-SHIPMENT / INTERSTATE TRANSFER", ["Vehicle cleaned enough for condition inspection","Fuel level recorded","Mileage recorded","Personal/loose items removed or secured","Keys accounted for","Cargo/equipment inventory documented","Existing exterior damage photographed","Existing interior damage photographed","Open repair/work order documented","Vehicle safe to load/transport","Ready to Ship"]],
+["RECEIVING INSPECTION", ["Arrival mileage recorded","Vehicle received at correct destination","Shipping damage inspection completed","New exterior damage documented/photographed","New interior damage documented/photographed","Missing equipment/items documented","Keys received","Vehicle starts/runs","Open repair/work order created if needed","Ready for Service"]]
+];
+const TOTAL_ITEMS = SECTIONS.reduce((n,s) => n + s[1].length, 0);
+
+// ===== Asset info from URL =====
+const params = new URLSearchParams(window.location.search);
+const asset = {
+  assetId: params.get("assetId") || "UNKNOWN",
+  folderName: params.get("folderName") || (params.get("assetId") || "UNKNOWN"),
+  make: params.get("make") || "",
+  model: params.get("model") || "",
+  vin: params.get("vin") || ""
+};
+document.getElementById("assetHeading").textContent = `${asset.assetId} — ${asset.make} ${asset.model}`.trim();
+document.getElementById("h_date").valueAsDate = new Date();
+
+// ===== State =====
+const STORAGE_KEY = "cmg_fleetsvc_" + asset.assetId;
+let state = {
+  header: {}, footer: {},
+  items: SECTIONS.map(s => s[1].map(() => ({ condition:null, reading:"", notes:"", repair:null })))
+};
+let photos = [];
+
+function saveState() {
+  collectHeaderFooter();
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ savedAt: new Date().toISOString(), state })); } catch(e) {}
+}
+function collectHeaderFooter() {
+  ["origin","destination","projectYard","receivingProjectYard","date","workOrder","licensePlate","mileage","inspector","driver","vehicleType","titanUnit"].forEach(k => {
+    const el = document.getElementById("h_" + k); if (el) state.header[k] = el.value;
+  });
+  ["releasedBy","releaseDate","readyToShip","receivedBy","receivedDate","shippingDamage","openRepairWO","missingItems","readyForService"].forEach(k => {
+    const el = document.getElementById("f_" + k); if (el) state.footer[k] = el.value;
+  });
+}
+
+// ===== Build sections =====
+const container = document.getElementById("sectionsContainer");
+SECTIONS.forEach((sec, sIdx) => {
+  const [title, items] = sec;
+  const secDiv = document.createElement("div");
+  secDiv.className = "section";
+  secDiv.innerHTML = `
+    <div class="section-head" data-idx="${sIdx}">
+      <div><span class="section-title">${title}</span></div>
+      <div style="display:flex;align-items:center;">
+        <span class="section-badge" id="badge-${sIdx}">0/${items.length}</span>
+        <span class="section-chevron">▶</span>
+      </div>
+    </div>
+    <div class="section-body" id="body-${sIdx}"></div>`;
+  container.appendChild(secDiv);
+
+  const body = secDiv.querySelector(".section-body");
+  items.forEach((itemText, iIdx) => {
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerHTML = `
+      <div class="item-q">${iIdx + 1}. ${itemText}</div>
+      <div class="btnrow" data-role="condition">
+        <button type="button" data-v="Pass">Pass</button>
+        <button type="button" data-v="Attn">Attn</button>
+        <button type="button" data-v="Fail">Fail</button>
+        <button type="button" data-v="N/A">N/A</button>
+      </div>
+      <div class="item-fields">
+        <input type="text" placeholder="Reading / Measurement" data-role="reading">
+        <input type="text" placeholder="Notes / Defects" data-role="notes" class="full">
+      </div>
+      <div class="repair-row">
+        <span class="lbl">Repair Req.</span>
+        <div class="btnrow" data-role="repair">
+          <button type="button" data-v="No">No</button>
+          <button type="button" data-v="Yes">Yes</button>
+          <button type="button" data-v="N/A">N/A</button>
+        </div>
+      </div>`;
+    body.appendChild(div);
+
+    const condBtns = div.querySelectorAll('[data-role="condition"] button');
+    const repairBtns = div.querySelectorAll('[data-role="repair"] button');
+    const readingInput = div.querySelector('[data-role="reading"]');
+    const notesInput = div.querySelector('[data-role="notes"]');
+
+    condBtns.forEach(btn => btn.addEventListener("click", () => {
+      condBtns.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      state.items[sIdx][iIdx].condition = btn.dataset.v;
+      updateProgress(); saveState();
+    }));
+    repairBtns.forEach(btn => btn.addEventListener("click", () => {
+      repairBtns.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      state.items[sIdx][iIdx].repair = btn.dataset.v;
+      saveState();
+    }));
+    readingInput.addEventListener("input", () => { state.items[sIdx][iIdx].reading = readingInput.value; saveState(); });
+    notesInput.addEventListener("input", () => { state.items[sIdx][iIdx].notes = notesInput.value; saveState(); });
+  });
+
+  secDiv.querySelector(".section-head").addEventListener("click", () => {
+    secDiv.classList.toggle("open");
+  });
+});
+document.getElementById("expandAllBtn").addEventListener("click", () => document.querySelectorAll(".section").forEach(s => s.classList.add("open")));
+document.getElementById("collapseAllBtn").addEventListener("click", () => document.querySelectorAll(".section").forEach(s => s.classList.remove("open")));
+
+function updateProgress() {
+  let done = 0;
+  SECTIONS.forEach((sec, sIdx) => {
+    let secDone = 0;
+    sec[1].forEach((_, iIdx) => { if (state.items[sIdx][iIdx].condition) secDone++; });
+    done += secDone;
+    const badge = document.getElementById("badge-" + sIdx);
+    badge.textContent = secDone + "/" + sec[1].length;
+    badge.className = "section-badge" + (secDone === sec[1].length ? " complete" : "");
+  });
+  document.getElementById("progText").textContent = done + " of " + TOTAL_ITEMS + " items completed";
+  document.getElementById("progFill").style.width = Math.round(done / TOTAL_ITEMS * 100) + "%";
+}
+
+// ===== Header/footer inputs also autosave =====
+document.querySelectorAll('input[id^="h_"], input[id^="f_"]').forEach(el => el.addEventListener("input", saveState));
+
+// ===== Resume from localStorage =====
+function applyState(loaded) {
+  state = loaded;
+  Object.keys(state.header || {}).forEach(k => { const el = document.getElementById("h_" + k); if (el && state.header[k]) el.value = state.header[k]; });
+  Object.keys(state.footer || {}).forEach(k => { const el = document.getElementById("f_" + k); if (el && state.footer[k]) el.value = state.footer[k]; });
+  SECTIONS.forEach((sec, sIdx) => {
+    sec[1].forEach((_, iIdx) => {
+      const rec = state.items[sIdx][iIdx];
+      const body = document.getElementById("body-" + sIdx);
+      const itemDiv = body.children[iIdx];
+      if (rec.condition) itemDiv.querySelector(`[data-role="condition"] button[data-v="${rec.condition}"]`)?.classList.add("active");
+      if (rec.repair) itemDiv.querySelector(`[data-role="repair"] button[data-v="${rec.repair}"]`)?.classList.add("active");
+      if (rec.reading) itemDiv.querySelector('[data-role="reading"]').value = rec.reading;
+      if (rec.notes) itemDiv.querySelector('[data-role="notes"]').value = rec.notes;
+    });
+  });
+  updateProgress();
+}
+
+try {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    const parsed = JSON.parse(saved);
+    const when = new Date(parsed.savedAt).toLocaleString();
+    document.getElementById("resumeBanner").innerHTML = `
+      <div class="resume-banner">
+        <div>A saved in-progress inspection for this asset was found (last saved ${when}).</div>
+        <button type="button" id="resumeBtn">Resume It</button>
+        <button type="button" id="discardBtn">Start Fresh</button>
+      </div>`;
+    document.getElementById("resumeBtn").addEventListener("click", () => {
+      applyState(parsed.state);
+      document.getElementById("resumeBanner").innerHTML = "";
+    });
+    document.getElementById("discardBtn").addEventListener("click", () => {
+      localStorage.removeItem(STORAGE_KEY);
+      document.getElementById("resumeBanner").innerHTML = "";
+    });
+  }
+} catch(e) {}
+
+updateProgress();
+
+// ===== Photos =====
+const thumbs = document.getElementById("thumbs");
+const photoCountEl = document.getElementById("photoCount");
+document.getElementById("addPhotoBtn").addEventListener("click", () => document.getElementById("photoInput").click());
+document.getElementById("photoInput").addEventListener("change", async (e) => {
+  const files = Array.from(e.target.files || []);
+  for (const file of files) {
+    if (photos.length >= MAX_PHOTOS) { alert(`Maximum ${MAX_PHOTOS} photos.`); break; }
+    try { const resized = await resizeImage(file); photos.push(resized); addThumb(resized); } catch(err) { console.error(err); }
+  }
+  e.target.value = "";
+  photoCountEl.textContent = photos.length + " photo" + (photos.length===1?"":"s") + " added";
+});
+function resizeImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image(); const reader = new FileReader();
+    reader.onload = (e) => { img.src = e.target.result; };
+    reader.onerror = reject;
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > height && width > MAX_PHOTO_DIMENSION) { height = Math.round(height*(MAX_PHOTO_DIMENSION/width)); width = MAX_PHOTO_DIMENSION; }
+      else if (height > MAX_PHOTO_DIMENSION) { width = Math.round(width*(MAX_PHOTO_DIMENSION/height)); height = MAX_PHOTO_DIMENSION; }
+      const canvas = document.createElement("canvas"); canvas.width = width; canvas.height = height;
+      canvas.getContext("2d").drawImage(img,0,0,width,height);
+      const dataUrl = canvas.toDataURL("image/jpeg", JPEG_QUALITY);
+      resolve({ name:`photo_${Date.now()}_${Math.random().toString(36).slice(2,7)}.jpg`, contentType:"image/jpeg", base64:dataUrl.split(",")[1], previewUrl:dataUrl });
+    };
+    img.onerror = reject; reader.readAsDataURL(file);
+  });
+}
+function addThumb(photo) {
+  const div = document.createElement("div"); div.className = "thumb";
+  div.innerHTML = `<img src="${photo.previewUrl}"><button type="button">✕</button>`;
+  div.querySelector("button").addEventListener("click", () => {
+    photos = photos.filter(p => p !== photo); div.remove();
+    photoCountEl.textContent = photos.length + " photo" + (photos.length===1?"":"s") + " added";
+  });
+  thumbs.appendChild(div);
+}
+
+// ===== Build plain-text report =====
+function buildReportText() {
+  const h = state.header, f = state.footer;
+  let lines = [];
+  lines.push("CMG PIPELINES - VEHICLE FLEET SERVICE & INTERSTATE TRANSFER INSPECTION");
+  lines.push("Asset: " + asset.assetId + " - " + asset.make + " " + asset.model + " (VIN " + asset.vin + ")");
+  lines.push("");
+  lines.push("Origin/From: " + (h.origin||"") + "   Destination/To: " + (h.destination||"") + "   Inspection Date: " + (h.date||""));
+  lines.push("Project/Yard: " + (h.projectYard||"") + "   Receiving Project/Yard: " + (h.receivingProjectYard||"") + "   Work Order #: " + (h.workOrder||""));
+  lines.push("License Plate: " + (h.licensePlate||"") + "   Mileage: " + (h.mileage||"") + "   Inspector/Mechanic: " + (h.inspector||""));
+  lines.push("Driver/Transporter: " + (h.driver||"") + "   Vehicle Type: " + (h.vehicleType||"") + "   Titan GPS Unit #: " + (h.titanUnit||""));
+  lines.push("");
+  SECTIONS.forEach((sec, sIdx) => {
+    lines.push("== " + sec[0] + " ==");
+    sec[1].forEach((itemText, iIdx) => {
+      const r = state.items[sIdx][iIdx];
+      lines.push("- " + itemText + " | Condition: " + (r.condition||"") + " | Reading: " + (r.reading||"") + " | Notes: " + (r.notes||"") + " | Repair Required: " + (r.repair||""));
+    });
+    lines.push("");
+  });
+  lines.push("== TRANSFER RELEASE / RECEIVING ACCEPTANCE ==");
+  lines.push("Released By: " + (f.releasedBy||"") + "   Release Date: " + (f.releaseDate||"") + "   Ready to Ship?: " + (f.readyToShip||""));
+  lines.push("Received By: " + (f.receivedBy||"") + "   Received Date: " + (f.receivedDate||"") + "   Shipping Damage?: " + (f.shippingDamage||""));
+  lines.push("Open Repair/WO #: " + (f.openRepairWO||"") + "   Missing Items: " + (f.missingItems||"") + "   Ready for Service?: " + (f.readyForService||""));
+  return lines.join("\n");
+}
+function computeOverallStatus() {
+  let hasFail = false, hasAttn = false;
+  state.items.forEach(sec => sec.forEach(r => { if (r.condition === "Fail") hasFail = true; if (r.condition === "Attn") hasAttn = true; }));
+  return hasFail ? "FAIL" : (hasAttn ? "ATTN" : "OK");
+}
+
+// ===== Submit =====
+const form = document.getElementById("inspectionForm");
+const submitBtn = document.getElementById("submitBtn");
+const formMsg = document.getElementById("formMsg");
+const overlay = document.getElementById("overlay");
+const overlayText = document.getElementById("overlayText");
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  formMsg.textContent = ""; formMsg.className = "";
+  collectHeaderFooter();
+
+  if (!document.getElementById("h_date").value) { formMsg.textContent = "Please enter the inspection date."; formMsg.className = "err"; return; }
+  if (!document.getElementById("h_inspector").value.trim()) { formMsg.textContent = "Please enter the inspector/mechanic name."; formMsg.className = "err"; return; }
+  const answered = state.items.reduce((n, sec) => n + sec.filter(r => r.condition).length, 0);
+  if (answered < TOTAL_ITEMS) {
+    formMsg.textContent = `Please complete every checklist item (${answered} of ${TOTAL_ITEMS} done — use N/A if it doesn't apply).`;
+    formMsg.className = "err";
+    return;
+  }
+
+  const payload = {
+    formType: FORM_TYPE,
+    assetId: asset.assetId,
+    folderName: asset.folderName,
+    make: asset.make,
+    model: asset.model,
+    vin: asset.vin,
+    date: state.header.date || "",
+    inspector: state.header.inspector || "",
+    projectYard: state.header.projectYard || "",
+    hoursMileage: state.header.mileage || "",
+    workOrder: state.header.workOrder || "",
+    equipmentStatus: computeOverallStatus(),
+    fullReportText: buildReportText(),
+    notes: "See attached full Fleet/Service inspection report.",
+    photos: photos.map(p => ({ name: p.name, contentType: p.contentType, base64: p.base64 }))
+  };
+
+  submitBtn.disabled = true;
+  overlay.className = "overlay show";
+  overlayText.textContent = "Uploading inspection…";
+
+  try {
+    const res = await fetch(POWER_AUTOMATE_URL, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(payload) });
+    if (!res.ok) throw new Error(`Server responded ${res.status}`);
+    localStorage.removeItem(STORAGE_KEY);
+    overlay.className = "overlay show success";
+    overlayText.textContent = "Inspection submitted. Thank you!";
+    setTimeout(() => { window.location.reload(); }, 2500);
+  } catch (err) {
+    overlay.className = "overlay";
+    submitBtn.disabled = false;
+    formMsg.textContent = "Submission failed — check your connection and try again. (Your progress is saved locally.)";
+    formMsg.className = "err";
+    console.error(err);
+  }
+});
+</script>
+</body>
+</html>
+
