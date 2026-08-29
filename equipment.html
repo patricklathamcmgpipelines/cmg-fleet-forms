@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Equipment Daily Inspection — CMG Pipelines</title>
+<style>
+  :root {
+    --steel: #1F3B57;
+    --steel-dark: #142838;
+    --rust: #C2571A;
+    --rust-dark: #9C4410;
+    --ok: #2C6B2F; --ok-bg: #E4F1E4;
+    --attn: #96590A; --attn-bg: #FBEBD6;
+    --fail: #8C2A20; --fail-bg: #F6DCDA;
+    --paper: #F7F5F1;
+    --ink: #1A1A1A;
+    --line: #D8D3C8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--paper); color: var(--ink); padding-bottom: 48px;
+  }
+  header {
+    background: var(--steel); color: #fff; padding: 18px 16px 16px;
+    text-align: center; position: sticky; top: 0; z-index: 5;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+  }
+  header h1 { margin: 0; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; }
+  header .asset { margin-top: 4px; font-size: 15px; color: #FFD9B8; font-weight: 600; }
+  header .sub { margin-top: 2px; font-size: 12px; color: #B9C6D3; }
+
+  main { max-width: 560px; margin: 0 auto; padding: 16px; }
+  section {
+    background: #fff; border: 1px solid var(--line); border-radius: 10px;
+    padding: 14px 16px; margin-bottom: 14px;
+  }
+  section h2 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--rust-dark); margin: 0 0 10px; border-bottom: 2px solid var(--rust);
+    padding-bottom: 6px;
+  }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 10px 0 4px; }
+  label:first-child { margin-top: 0; }
+  input[type=text], input[type=date], input[type=number], textarea {
+    width: 100%; padding: 10px 12px; font-size: 16px; border: 1px solid var(--line);
+    border-radius: 8px; background: #fdfdfc; font-family: inherit;
+  }
+  textarea { min-height: 70px; resize: vertical; }
+
+  .rating-item { border-bottom: 1px solid var(--line); padding: 10px 0; }
+  .rating-item:last-child { border-bottom: none; }
+  .rating-item .q { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+  .rating-btns { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 6px; }
+  .rating-btns button {
+    padding: 10px 4px; font-size: 12px; font-weight: 700; border-radius: 7px;
+    border: 2px solid var(--line); background: #fff; color: #555; cursor: pointer;
+  }
+  .rating-btns button[data-v="OK"].active { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
+  .rating-btns button[data-v="ATTN"].active { background: var(--attn-bg); border-color: var(--attn); color: var(--attn); }
+  .rating-btns button[data-v="FAIL"].active { background: var(--fail-bg); border-color: var(--fail); color: var(--fail); }
+  .rating-btns button[data-v="N/A"].active { background: #E6E6E6; border-color: #888; color: #444; }
+
+  .photo-count { font-size: 13px; font-weight: 700; margin-bottom: 10px; padding: 8px 10px; border-radius: 7px; }
+  .photo-count.need { background: var(--fail-bg); color: var(--fail); }
+  .photo-count.ok { background: var(--ok-bg); color: var(--ok); }
+
+  .photo-btn {
+    display: block; width: 100%; padding: 14px; font-size: 15px; font-weight: 700;
+    border-radius: 8px; border: 2px dashed var(--rust); background: #FFF4EC; color: var(--rust-dark);
+    cursor: pointer; margin-bottom: 10px;
+  }
+  #photoInput { display: none; }
+  .thumbs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .thumb { position: relative; aspect-ratio: 1; border-radius: 6px; overflow: hidden; border: 1px solid var(--line); }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb button {
+    position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; line-height: 18px;
+    border-radius: 50%; border: none; background: rgba(0,0,0,.65); color: #fff; font-size: 13px; cursor: pointer;
+  }
+
+  .status-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .status-btns button {
+    padding: 14px 4px; font-size: 14px; font-weight: 700; border-radius: 8px;
+    border: 2px solid var(--line); background: #fff; color: #555; cursor: pointer;
+  }
+  .status-btns button[data-v="OK"].active { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
+  .status-btns button[data-v="ATTN"].active { background: var(--attn-bg); border-color: var(--attn); color: var(--attn); }
+  .status-btns button[data-v="FAIL"].active { background: var(--fail-bg); border-color: var(--fail); color: var(--fail); }
+
+  .submit-bar { position: sticky; bottom: 0; background: var(--paper); padding: 10px 16px 16px; }
+  #submitBtn {
+    width: 100%; padding: 16px; font-size: 16px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: .04em; border: none; border-radius: 10px; background: var(--rust); color: #fff; cursor: pointer;
+  }
+  #submitBtn:disabled { background: #C7BFAE; cursor: not-allowed; }
+  #formMsg { text-align: center; font-size: 13px; margin-top: 8px; min-height: 18px; font-weight: 600; }
+  #formMsg.err { color: var(--fail); }
+  #formMsg.ok { color: var(--ok); }
+
+  .overlay {
+    position: fixed; inset: 0; background: rgba(20,40,56,.92); color: #fff; display: none;
+    align-items: center; justify-content: center; flex-direction: column; text-align: center; padding: 24px; z-index: 20;
+  }
+  .overlay.show { display: flex; }
+  .spinner {
+    width: 40px; height: 40px; border: 4px solid rgba(255,255,255,.25); border-top-color: var(--rust);
+    border-radius: 50%; animation: spin 0.9s linear infinite; margin-bottom: 14px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .overlay.success .spinner { display: none; }
+  .checkmark { font-size: 46px; color: #7CD98F; margin-bottom: 10px; display: none; }
+  .overlay.success .checkmark { display: block; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>CMG Pipelines — Equipment Daily Inspection</h1>
+  <div class="asset" id="assetHeading">Loading asset…</div>
+  <div class="sub" id="assetSub"></div>
+</header>
+
+<main>
+  <form id="inspectionForm">
+
+    <section>
+      <h2>Inspection Details</h2>
+      <label for="date">Date</label>
+      <input type="date" id="date" required>
+      <label for="projectYard">Project / Yard</label>
+      <input type="text" id="projectYard" placeholder="e.g. Baton Rouge Yard">
+      <label for="hoursMileage">Hours / Odometer / Meter Reading</label>
+      <input type="text" id="hoursMileage" inputmode="numeric" placeholder="e.g. 1,204 (leave blank if N/A)">
+      <label for="inspector">Inspector / Operator Name</label>
+      <input type="text" id="inspector" required placeholder="First and last name">
+      <label for="workOrder">Work Order # (optional)</label>
+      <input type="text" id="workOrder">
+    </section>
+
+    <section>
+      <h2>Daily Checklist <span style="font-weight:400;color:#777;">(mark N/A if not applicable to this equipment)</span></h2>
+      <div id="ratingList"></div>
+    </section>
+
+    <section>
+      <h2>Photos <span style="color:var(--rust-dark)">(required, 4–10)</span></h2>
+      <div id="photoCount" class="photo-count need">0 of 4 minimum photos added</div>
+      <button type="button" class="photo-btn" id="addPhotoBtn">📷 Add Photo</button>
+      <input type="file" id="photoInput" accept="image/*" capture="environment" multiple>
+      <div class="thumbs" id="thumbs"></div>
+    </section>
+
+    <section>
+      <h2>Notes / Defects</h2>
+      <textarea id="notes" placeholder="Describe any defects, damage, or concerns…"></textarea>
+    </section>
+
+    <section>
+      <h2>Overall Equipment Status</h2>
+      <div class="status-btns" id="statusBtns">
+        <button type="button" data-v="OK">OK</button>
+        <button type="button" data-v="ATTN">Attention</button>
+        <button type="button" data-v="FAIL">Fail</button>
+      </div>
+    </section>
+
+    <div class="submit-bar">
+      <button type="submit" id="submitBtn">Submit Inspection</button>
+      <div id="formMsg"></div>
+    </div>
+  </form>
+</main>
+
+<div class="overlay" id="overlay">
+  <div class="spinner"></div>
+  <div class="checkmark">✓</div>
+  <div id="overlayText" style="font-size:15px;font-weight:600;">Uploading inspection…</div>
+</div>
+
+<script>
+// ===== CONFIGURATION =====
+// Same Power Automate flow used by the vehicle form — it reads folderName/assetId
+// generically from the payload, so both forms share one intake flow.
+const POWER_AUTOMATE_URL = "https://default58be2c3c790d488697834bdc51b5d3.aa.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/13/workflows/433933cdcdb4442f80b15efc1098fefe/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=SXCc1_YpU1bZIMa0X2FJHQVaGbHxi14Uwg6GBnprWfk";
+
+const MIN_PHOTOS = 4;
+const MAX_PHOTOS = 10;
+const MAX_PHOTO_DIMENSION = 1600; // px, longest side, before compressing
+const JPEG_QUALITY = 0.72;
+
+const RATING_ITEMS = [
+  "Overall structural condition — frame, welds, guards and covers, no visible damage or cracks",
+  "Fluid levels and visible leaks — oil, hydraulic, fuel, coolant (if equipped)",
+  "Tires, tracks, wheels, or support/outrigger legs — condition and wear",
+  "Hitch, chains, safety cables, lights and reflectors (if towable)",
+  "Controls, gauges, switches and safety guards operate correctly",
+  "Hydraulic hoses, cylinders and attachments — no leaks or visible damage",
+  "Decals, warning labels and required safety equipment present and legible",
+  "Registration/inspection stickers and asset ID tag present and legible"
+];
+
+// ===== Asset info from URL (set by the QR code link) =====
+const params = new URLSearchParams(window.location.search);
+const asset = {
+  assetId: params.get("assetId") || "UNKNOWN",
+  folderName: params.get("folderName") || (params.get("assetId") || "UNKNOWN"),
+  make: params.get("make") || "",
+  model: params.get("model") || "",
+  vin: params.get("vin") || ""
+};
+document.getElementById("assetHeading").textContent = `${asset.assetId} — ${asset.make} ${asset.model}`.trim();
+document.getElementById("assetSub").textContent = asset.vin ? `Serial/VIN: ${asset.vin}` : "";
+document.getElementById("date").valueAsDate = new Date();
+
+// ===== Build rating checklist =====
+const ratingList = document.getElementById("ratingList");
+const ratingState = new Array(RATING_ITEMS.length).fill(null);
+RATING_ITEMS.forEach((text, i) => {
+  const div = document.createElement("div");
+  div.className = "rating-item";
+  div.innerHTML = `
+    <div class="q">${i + 1}. ${text}</div>
+    <div class="rating-btns">
+      <button type="button" data-v="OK">OK</button>
+      <button type="button" data-v="ATTN">Attention</button>
+      <button type="button" data-v="FAIL">Fail</button>
+      <button type="button" data-v="N/A">N/A</button>
+    </div>`;
+  div.querySelectorAll("button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      div.querySelectorAll("button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      ratingState[i] = btn.dataset.v;
+    });
+  });
+  ratingList.appendChild(div);
+});
+
+// ===== Overall status buttons =====
+let overallStatus = null;
+document.getElementById("statusBtns").querySelectorAll("button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.getElementById("statusBtns").querySelectorAll("button").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    overallStatus = btn.dataset.v;
+  });
+});
+
+// ===== Photo capture, resize, and preview =====
+let photos = []; // { name, contentType, base64 }
+const thumbs = document.getElementById("thumbs");
+const photoCountEl = document.getElementById("photoCount");
+const addPhotoBtn = document.getElementById("addPhotoBtn");
+const photoInput = document.getElementById("photoInput");
+
+addPhotoBtn.addEventListener("click", () => photoInput.click());
+
+photoInput.addEventListener("change", async (e) => {
+  const files = Array.from(e.target.files || []);
+  for (const file of files) {
+    if (photos.length >= MAX_PHOTOS) {
+      alert(`Maximum ${MAX_PHOTOS} photos.`);
+      break;
+    }
+    try {
+      const resized = await resizeImage(file);
+      photos.push(resized);
+      addThumb(resized);
+    } catch (err) {
+      console.error("Photo processing failed", err);
+    }
+  }
+  photoInput.value = "";
+  updatePhotoCount();
+});
+
+function resizeImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = (e) => { img.src = e.target.result; };
+    reader.onerror = reject;
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > height && width > MAX_PHOTO_DIMENSION) {
+        height = Math.round(height * (MAX_PHOTO_DIMENSION / width)); width = MAX_PHOTO_DIMENSION;
+      } else if (height > MAX_PHOTO_DIMENSION) {
+        width = Math.round(width * (MAX_PHOTO_DIMENSION / height)); height = MAX_PHOTO_DIMENSION;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width; canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      const dataUrl = canvas.toDataURL("image/jpeg", JPEG_QUALITY);
+      resolve({
+        name: `photo_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.jpg`,
+        contentType: "image/jpeg",
+        base64: dataUrl.split(",")[1],
+        previewUrl: dataUrl
+      });
+    };
+    img.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function addThumb(photo) {
+  const div = document.createElement("div");
+  div.className = "thumb";
+  div.innerHTML = `<img src="${photo.previewUrl}"><button type="button">✕</button>`;
+  div.querySelector("button").addEventListener("click", () => {
+    photos = photos.filter(p => p !== photo);
+    div.remove();
+    updatePhotoCount();
+  });
+  thumbs.appendChild(div);
+}
+
+function updatePhotoCount() {
+  const n = photos.length;
+  photoCountEl.textContent = n < MIN_PHOTOS
+    ? `${n} of ${MIN_PHOTOS} minimum photos added`
+    : `${n} photo${n === 1 ? "" : "s"} added ✓`;
+  photoCountEl.className = "photo-count " + (n < MIN_PHOTOS ? "need" : "ok");
+}
+
+// ===== Submit =====
+const form = document.getElementById("inspectionForm");
+const submitBtn = document.getElementById("submitBtn");
+const formMsg = document.getElementById("formMsg");
+const overlay = document.getElementById("overlay");
+const overlayText = document.getElementById("overlayText");
+
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  formMsg.textContent = ""; formMsg.className = "";
+
+  if (ratingState.some(v => v === null)) {
+    formMsg.textContent = "Please answer every checklist item (use N/A if it doesn't apply)."; formMsg.className = "err"; return;
+  }
+  if (photos.length < MIN_PHOTOS) {
+    formMsg.textContent = `Please add at least ${MIN_PHOTOS} photos (${photos.length} added).`; formMsg.className = "err"; return;
+  }
+  if (!overallStatus) {
+    formMsg.textContent = "Please select an overall equipment status."; formMsg.className = "err"; return;
+  }
+  if (!document.getElementById("inspector").value.trim()) {
+    formMsg.textContent = "Please enter the inspector/operator name."; formMsg.className = "err"; return;
+  }
+  if (POWER_AUTOMATE_URL.startsWith("PASTE_")) {
+    formMsg.textContent = "Form isn't connected to Power Automate yet (POWER_AUTOMATE_URL not set)."; formMsg.className = "err"; return;
+  }
+
+  const payload = {
+    assetId: asset.assetId,
+    folderName: asset.folderName,
+    make: asset.make,
+    model: asset.model,
+    vin: asset.vin,
+    date: document.getElementById("date").value,
+    projectYard: document.getElementById("projectYard").value.trim(),
+    hoursMileage: document.getElementById("hoursMileage").value.trim(),
+    inspector: document.getElementById("inspector").value.trim(),
+    workOrder: document.getElementById("workOrder").value.trim(),
+    ratingItems: RATING_ITEMS,
+    ratings: ratingState,
+    notes: document.getElementById("notes").value.trim(),
+    equipmentStatus: overallStatus,
+    photos: photos.map(p => ({ name: p.name, contentType: p.contentType, base64: p.base64 }))
+  };
+
+  submitBtn.disabled = true;
+  overlay.className = "overlay show";
+  overlayText.textContent = "Uploading inspection…";
+
+  try {
+    const res = await fetch(POWER_AUTOMATE_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error(`Server responded ${res.status}`);
+
+    overlay.className = "overlay show success";
+    overlayText.textContent = "Inspection submitted. Thank you!";
+    setTimeout(() => { window.location.reload(); }, 2500);
+  } catch (err) {
+    overlay.className = "overlay";
+    submitBtn.disabled = false;
+    formMsg.textContent = "Submission failed — check your connection and try again.";
+    formMsg.className = "err";
+    console.error(err);
+  }
+});
+
+updatePhotoCount();
+</script>
+</body>
+</html>
+
