@@ -122,6 +122,13 @@
   <div class="sub" id="assetSub"></div>
 </header>
 
+<div id="folderLinkBar" style="display:none; text-align:center; padding:10px 16px; background:#fff; border-bottom:1px solid var(--line);">
+  <a id="folderLinkBtn" href="#" target="_blank" rel="noopener"
+     style="display:inline-block; padding:10px 18px; font-size:14px; font-weight:700; border-radius:8px; background:var(--steel); color:#fff; text-decoration:none;">
+    📁 View Asset Folder
+  </a>
+</div>
+
 <main>
   <form id="inspectionForm">
 
@@ -213,6 +220,19 @@ const asset = {
 document.getElementById("assetHeading").textContent = `${asset.assetId} — ${asset.make} ${asset.model}`.trim();
 document.getElementById("assetSub").textContent = asset.vin ? `Serial/VIN: ${asset.vin}` : "";
 document.getElementById("date").valueAsDate = new Date();
+
+// ===== Folder-link button (best-effort; form works fine if this fails) =====
+fetch('./folder-links.json')
+  .then(r => r.json())
+  .then(map => {
+    const lower = Object.fromEntries(Object.entries(map).map(([k, v]) => [k.toLowerCase(), v]));
+    const url = lower[asset.folderName.toLowerCase()];
+    if (url) {
+      document.getElementById('folderLinkBtn').href = url;
+      document.getElementById('folderLinkBar').style.display = 'block';
+    }
+  })
+  .catch(() => { /* fail silently — form still works without the button */ });
 
 // ===== Build rating checklist =====
 const ratingList = document.getElementById("ratingList");
@@ -398,4 +418,3 @@ updatePhotoCount();
 </script>
 </body>
 </html>
-
