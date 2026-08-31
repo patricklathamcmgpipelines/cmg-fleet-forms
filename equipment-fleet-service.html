@@ -399,6 +399,16 @@ CATEGORIES["vibratory-hammer"] = ["Vibratory Hammer", [
 ["TRANSFER", ["Existing damage photographed","Hoses capped/secured","Open WO","Ready to Ship","Shipping damage","Ready for Service"]]
 ]];
 
+CATEGORIES["locator"] = ["Locating Equipment Package", [
+["PACKAGE IDENTIFICATION", ["Asset/package ID","Locator make/model/serial","Display/receiver serial","Transmitter/sonde serial","Remote display serial if applicable"]],
+["LOCATOR / RECEIVER", ["Powers on","Display condition","Buttons/controls function","Speaker/audio alerts","Depth reading test","Pitch reading test","Signal strength test","Frequency selection","Calibration/self-test completed"]],
+["TRANSMITTER / SONDE", ["Transmitter powers on","Battery contacts","Housing/threads","Signal verified","Depth/pitch recorded","Operating frequency recorded"]],
+["BATTERIES / CHARGERS", ["Primary batteries condition","Spare batteries present","Battery charger present","Charger function","Power cords/adapters","Vehicle charger if applicable"]],
+["ACCESSORIES", ["Carry cases","Ground stakes","Cables/leads","Headphones if issued","Beacon/markers","Manuals/quick guides","All assigned accessories inventoried"]],
+["CONDITION / DATA", ["Screens not cracked","Case/latches intact","Connectors clean/undamaged","Firmware/software recorded if available","Calibration date recorded","Next calibration due recorded"]],
+["TRANSFER", ["Package photographed","All serial numbers verified","Missing items documented","Open repair/WO","Ready to Ship","Shipping damage","Ready for Service"]]
+]];
+
 // ===== Asset info + category from URL =====
 const params = new URLSearchParams(window.location.search);
 const asset = {
