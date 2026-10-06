@@ -1,0 +1,10 @@
+{
+  "_note": "Edit this file to change the Project / Yard dropdown on every inspection form. Add or remove names inside \"list\" (keep quotes around each name and a comma between names, none after the last).",
+  "list": [
+    "NOLA",
+    "CP2",
+    "NM",
+    "CA",
+    "OR"
+  ]
+}

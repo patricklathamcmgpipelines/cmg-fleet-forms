@@ -106,8 +106,10 @@
       <div class="grid2">
         <div><label>Origin / From</label><input type="text" id="h_origin"></div>
         <div><label>Destination / To</label><input type="text" id="h_destination"></div>
-        <div><label>Project / Yard</label><input type="text" id="h_projectYard"></div>
-        <div><label>Receiving Project / Yard</label><input type="text" id="h_receivingProjectYard"></div>
+        <div><label>Project / Yard</label><select id="h_projectYard_sel" style="width:100%;padding:12px;font-size:16px;border:1px solid #bbb;border-radius:8px;background:#fff;margin-bottom:6px;"></select>
+      <input placeholder="Type project / yard" style="display:none" type="text" id="h_projectYard"></div>
+        <div><label>Receiving Project / Yard</label><select id="h_receivingProjectYard_sel" style="width:100%;padding:12px;font-size:16px;border:1px solid #bbb;border-radius:8px;background:#fff;margin-bottom:6px;"></select>
+      <input placeholder="Type project / yard" style="display:none" type="text" id="h_receivingProjectYard"></div>
         <div><label>Inspection Date</label><input type="date" id="h_date" required></div>
         <div><label>Work Order #</label><input type="text" id="h_workOrder"></div>
         <div><label>License Plate</label><input type="text" id="h_licensePlate"></div>
@@ -343,7 +345,7 @@ try {
         <button type="button" id="discardBtn">Start Fresh</button>
       </div>`;
     document.getElementById("resumeBtn").addEventListener("click", () => {
-      applyState(parsed.state);
+      applyState(parsed.state); syncProjectUI();
       document.getElementById("resumeBanner").innerHTML = "";
     });
     document.getElementById("discardBtn").addEventListener("click", () => {
@@ -426,6 +428,55 @@ function computeOverallStatus() {
   state.items.forEach(sec => sec.forEach(r => { if (r.condition === "Fail") hasFail = true; if (r.condition === "Attn") hasAttn = true; }));
   return hasFail ? "FAIL" : (hasAttn ? "ATTN" : "OK");
 }
+
+// ===== Project / Yard dropdown — added 2026-10-06 =====
+// List comes from ./projects.json (edit that file to add jobs; no form code changes needed).
+// The list below is the fallback if the file can't be loaded. "Other" lets inspectors type a value.
+const PROJECT_FIELD_IDS = ["projectYard", "h_projectYard", "h_receivingProjectYard"].filter(id => document.getElementById(id));
+let PROJECT_LIST = { list: ["NOLA", "CP2", "NM", "CA", "OR"] };
+function uniqCI(arr) { const seen = new Set(); return arr.filter(v => { const k = String(v).trim().toLowerCase(); if (!k || seen.has(k)) return false; seen.add(k); return true; }); }
+function buildProjectSelects() {
+  PROJECT_FIELD_IDS.forEach(id => {
+    const inp = document.getElementById(id), sel = document.getElementById(id + "_sel");
+    if (!inp || !sel) return;
+    const keep = inp.value;
+    sel.innerHTML = "";
+    const add = (parent, value, label) => { const o = document.createElement("option"); o.value = value; o.textContent = label || value; parent.appendChild(o); };
+    add(sel, "", "— Select project / yard —");
+    uniqCI(PROJECT_LIST.list).forEach(v => add(sel, v));
+    add(sel, "__other__", "Other (type it in)");
+    inp.value = keep;
+  });
+  syncProjectUI();
+}
+function syncProjectUI() {
+  PROJECT_FIELD_IDS.forEach(id => {
+    const inp = document.getElementById(id), sel = document.getElementById(id + "_sel");
+    if (!inp || !sel) return;
+    const v = inp.value.trim();
+    const match = Array.from(sel.options).find(o => o.value && o.value !== "__other__" && o.value.toLowerCase() === v.toLowerCase());
+    if (!v) { sel.value = ""; inp.style.display = "none"; }
+    else if (match) { sel.value = match.value; inp.value = match.value; inp.style.display = "none"; }
+    else { sel.value = "__other__"; inp.style.display = ""; }
+  });
+}
+PROJECT_FIELD_IDS.forEach(id => {
+  const inp = document.getElementById(id), sel = document.getElementById(id + "_sel");
+  if (!inp || !sel) return;
+  sel.addEventListener("change", () => {
+    if (sel.value === "__other__") { inp.value = ""; inp.style.display = ""; inp.focus(); }
+    else { inp.value = sel.value; inp.style.display = "none"; }
+    inp.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+});
+buildProjectSelects();
+fetch("./projects.json?v=" + Date.now())
+  .then(r => r.json())
+  .then(data => {
+    if (Array.isArray(data.list) && data.list.length) PROJECT_LIST = { list: data.list };
+    buildProjectSelects();
+  })
+  .catch(() => { /* keep fallback yard list */ });
 
 // ===== Submit =====
 const form = document.getElementById("inspectionForm");

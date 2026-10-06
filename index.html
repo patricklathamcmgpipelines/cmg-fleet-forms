@@ -141,8 +141,9 @@
       <h2>Inspection Details</h2>
       <label for="date">Date</label>
       <input type="date" id="date" required>
-      <label for="projectYard">Project / Yard</label>
-      <input type="text" id="projectYard" placeholder="e.g. Baton Rouge Yard">
+      <label for="projectYard_sel">Project / Yard</label>
+      <select id="projectYard_sel" style="width:100%;padding:12px;font-size:16px;border:1px solid #bbb;border-radius:8px;background:#fff;margin-bottom:6px;"></select>
+      <input style="display:none" type="text" id="projectYard" placeholder="Type project / yard">
       <label for="hoursMileage">Hours / Mileage</label>
       <input type="text" id="hoursMileage" inputmode="numeric" placeholder="e.g. 48,210">
       <label for="inspector">Inspector / Operator Name</label>
@@ -361,6 +362,55 @@ function updatePhotoCount() {
     : `${n} photo${n === 1 ? "" : "s"} added ✓`;
   photoCountEl.className = "photo-count " + (n < MIN_PHOTOS ? "need" : "ok");
 }
+
+// ===== Project / Yard dropdown — added 2026-10-06 =====
+// List comes from ./projects.json (edit that file to add jobs; no form code changes needed).
+// The list below is the fallback if the file can't be loaded. "Other" lets inspectors type a value.
+const PROJECT_FIELD_IDS = ["projectYard", "h_projectYard", "h_receivingProjectYard"].filter(id => document.getElementById(id));
+let PROJECT_LIST = { list: ["NOLA", "CP2", "NM", "CA", "OR"] };
+function uniqCI(arr) { const seen = new Set(); return arr.filter(v => { const k = String(v).trim().toLowerCase(); if (!k || seen.has(k)) return false; seen.add(k); return true; }); }
+function buildProjectSelects() {
+  PROJECT_FIELD_IDS.forEach(id => {
+    const inp = document.getElementById(id), sel = document.getElementById(id + "_sel");
+    if (!inp || !sel) return;
+    const keep = inp.value;
+    sel.innerHTML = "";
+    const add = (parent, value, label) => { const o = document.createElement("option"); o.value = value; o.textContent = label || value; parent.appendChild(o); };
+    add(sel, "", "— Select project / yard —");
+    uniqCI(PROJECT_LIST.list).forEach(v => add(sel, v));
+    add(sel, "__other__", "Other (type it in)");
+    inp.value = keep;
+  });
+  syncProjectUI();
+}
+function syncProjectUI() {
+  PROJECT_FIELD_IDS.forEach(id => {
+    const inp = document.getElementById(id), sel = document.getElementById(id + "_sel");
+    if (!inp || !sel) return;
+    const v = inp.value.trim();
+    const match = Array.from(sel.options).find(o => o.value && o.value !== "__other__" && o.value.toLowerCase() === v.toLowerCase());
+    if (!v) { sel.value = ""; inp.style.display = "none"; }
+    else if (match) { sel.value = match.value; inp.value = match.value; inp.style.display = "none"; }
+    else { sel.value = "__other__"; inp.style.display = ""; }
+  });
+}
+PROJECT_FIELD_IDS.forEach(id => {
+  const inp = document.getElementById(id), sel = document.getElementById(id + "_sel");
+  if (!inp || !sel) return;
+  sel.addEventListener("change", () => {
+    if (sel.value === "__other__") { inp.value = ""; inp.style.display = ""; inp.focus(); }
+    else { inp.value = sel.value; inp.style.display = "none"; }
+    inp.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+});
+buildProjectSelects();
+fetch("./projects.json?v=" + Date.now())
+  .then(r => r.json())
+  .then(data => {
+    if (Array.isArray(data.list) && data.list.length) PROJECT_LIST = { list: data.list };
+    buildProjectSelects();
+  })
+  .catch(() => { /* keep fallback yard list */ });
 
 // ===== Submit =====
 const form = document.getElementById("inspectionForm");
